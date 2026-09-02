@@ -206,6 +206,24 @@ describe('context explorer worktree writes', () => {
 		expectLiveUnchanged();
 	});
 
+	it('refuses to write through a symlink that points at a tracked file inside the project', async () => {
+		const context = await readFileContent('/context.md', access);
+		const repo = access.git.status === 'available' ? access.git.repo : null;
+		const worktreeProject = repo!.projectPrefix
+			? path.join(repo!.worktreeRoot, repo!.projectPrefix)
+			: repo!.worktreeRoot;
+		const target = path.join(worktreeProject, 'context.md');
+		const before = fs.readFileSync(target, 'utf8');
+		fs.symlinkSync('context.md', path.join(worktreeProject, 'alias.md'));
+		commitAll(repo!.worktreeRoot);
+
+		await expect(writeFileContent('/alias.md', 'changed\n', context.hash, access)).rejects.toMatchObject({
+			code: 'FORBIDDEN',
+		});
+		expect(fs.readFileSync(target, 'utf8')).toBe(before);
+		expectLiveUnchanged();
+	});
+
 	it('preserves file mode and permits only one concurrent atomic write', async () => {
 		const repo = access.git.status === 'available' ? access.git.repo : null;
 		const target = path.join(repo!.worktreeRoot, 'context.md');
