@@ -1,13 +1,25 @@
+import React from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { buildChart } from '../src/chart-builder';
 import {
 	collectAxisValues,
 	collectStackedAxisValues,
+	computeNiceBarTicks,
 	computeNiceDomain,
 	niceNumber,
 	resolveBarYAxisDomain,
 	resolveYAxisDomain,
 } from '../src/chart-domain';
+
+function getYAxis(chart: React.ReactElement) {
+	return React.Children.toArray(chart.props.children).find(
+		(child) =>
+			React.isValidElement(child) &&
+			child.type &&
+			(child.type as { displayName?: string }).displayName === 'YAxis',
+	) as React.ReactElement | undefined;
+}
 
 describe('chart domain helpers', () => {
 	describe('niceNumber', () => {
@@ -43,6 +55,80 @@ describe('chart domain helpers', () => {
 			const [min, max] = computeNiceDomain(42, 42);
 			expect(min).toBeLessThan(42);
 			expect(max).toBeGreaterThan(42);
+		});
+	});
+
+	describe('computeNiceBarTicks', () => {
+		it('uses integer steps that cover the maximum count', () => {
+			expect(computeNiceBarTicks([12, 380, 97])).toEqual([0, 100, 200, 300, 400]);
+		});
+
+		it('never creates fractional ticks for small integer counts', () => {
+			const ticks = computeNiceBarTicks([1, 2, 3]);
+
+			expect(ticks).toBeDefined();
+			expect(ticks?.every(Number.isInteger)).toBe(true);
+			expect(ticks?.at(-1)).toBeGreaterThanOrEqual(3);
+		});
+
+		it('keeps decimal values representable', () => {
+			const ticks = computeNiceBarTicks([0.12, 0.38, 0.97]);
+
+			expect(ticks).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1]);
+		});
+
+		it.each([
+			{ values: [] },
+			{ values: [-1, 2] },
+			{ values: [1, Number.NaN] },
+			{ values: [1, Number.POSITIVE_INFINITY] },
+		])('returns the fallback for invalid populations: $values', ({ values }) => {
+			expect(computeNiceBarTicks(values)).toBeUndefined();
+		});
+	});
+
+	describe('bar chart tick integration', () => {
+		it('passes generated ticks to the shared bar Y axis', () => {
+			const chart = buildChart({
+				data: [
+					{ month: 'Jan', count: 12 },
+					{ month: 'Feb', count: 380 },
+					{ month: 'Mar', count: 97 },
+				],
+				chartType: 'bar',
+				xAxisKey: 'month',
+				series: [{ data_key: 'count' }],
+				showDataLabels: true,
+			});
+
+			expect(getYAxis(chart)?.props.ticks).toEqual([0, 100, 200, 300, 400]);
+			expect(getYAxis(chart)?.props.domain?.[1]).toBeGreaterThan(400);
+		});
+
+		it('leaves explicit and negative domains on the existing fallback', () => {
+			const explicitChart = buildChart({
+				data: [
+					{ month: 'Jan', count: 12 },
+					{ month: 'Feb', count: 380 },
+				],
+				chartType: 'bar',
+				xAxisKey: 'month',
+				series: [{ data_key: 'count' }],
+				yAxisMin: 0,
+				yAxisMax: 500,
+			});
+			const negativeChart = buildChart({
+				data: [
+					{ month: 'Jan', count: -12 },
+					{ month: 'Feb', count: 380 },
+				],
+				chartType: 'bar',
+				xAxisKey: 'month',
+				series: [{ data_key: 'count' }],
+			});
+
+			expect(getYAxis(explicitChart)?.props.ticks).toBeUndefined();
+			expect(getYAxis(negativeChart)?.props.ticks).toBeUndefined();
 		});
 	});
 

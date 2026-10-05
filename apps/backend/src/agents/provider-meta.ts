@@ -321,6 +321,7 @@ export const PROVIDER_META: ProviderMetaMap = {
 		auth: { apiKey: 'required' },
 		envVar: 'ANTHROPIC_API_KEY',
 		baseUrlEnvVar: 'ANTHROPIC_BASE_URL',
+		defaultBaseUrl: 'https://api.anthropic.com/v1',
 		extractorModelId: 'claude-haiku-4-5',
 		summaryModelId: 'claude-sonnet-4-5',
 		models: [
@@ -416,6 +417,7 @@ export const PROVIDER_META: ProviderMetaMap = {
 		auth: { apiKey: 'required' },
 		envVar: 'OPENAI_API_KEY',
 		baseUrlEnvVar: 'OPENAI_BASE_URL',
+		defaultBaseUrl: 'https://api.openai.com/v1',
 		extractorModelId: 'gpt-4.1-mini',
 		summaryModelId: 'gpt-4.1-mini',
 		models: [
@@ -504,6 +506,7 @@ export const PROVIDER_META: ProviderMetaMap = {
 		auth: { apiKey: 'required' },
 		envVar: 'GEMINI_API_KEY',
 		baseUrlEnvVar: 'GEMINI_BASE_URL',
+		defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
 		extractorModelId: 'gemini-2.5-flash',
 		summaryModelId: 'gemini-2.5-flash',
 		models: [
@@ -542,6 +545,7 @@ export const PROVIDER_META: ProviderMetaMap = {
 		auth: { apiKey: 'required' },
 		envVar: 'MISTRAL_API_KEY',
 		baseUrlEnvVar: 'MISTRAL_BASE_URL',
+		defaultBaseUrl: 'https://api.mistral.ai/v1',
 		extractorModelId: 'mistral-medium-latest',
 		summaryModelId: 'mistral-medium-latest',
 		models: [
@@ -570,6 +574,7 @@ export const PROVIDER_META: ProviderMetaMap = {
 		],
 	},
 	openrouter: {
+		defaultBaseUrl: 'https://openrouter.ai/api/v1',
 		auth: { apiKey: 'required' },
 		envVar: 'OPENROUTER_API_KEY',
 		baseUrlEnvVar: 'OPENROUTER_BASE_URL',
@@ -647,6 +652,7 @@ export const PROVIDER_META: ProviderMetaMap = {
 		],
 	},
 	ollama: {
+		defaultBaseUrl: 'http://127.0.0.1:11434',
 		auth: { apiKey: 'none' },
 		envVar: 'OLLAMA_API_KEY',
 		baseUrlEnvVar: 'OLLAMA_BASE_URL',

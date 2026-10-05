@@ -2,10 +2,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testState = vi.hoisted(() => ({
 	projectPath: '',
+	existingConfig: null as { apiKey: string; baseUrl?: string | null } | null,
 	upsertProjectLlmConfig: vi.fn(),
 }));
 
@@ -16,7 +17,7 @@ vi.mock('../src/queries/project.queries', () => ({
 }));
 
 vi.mock('../src/queries/project-llm-config.queries', () => ({
-	getProjectLlmConfigByProvider: vi.fn(() => null),
+	getProjectLlmConfigByProvider: vi.fn(() => testState.existingConfig),
 	upsertProjectLlmConfig: testState.upsertProjectLlmConfig,
 }));
 
@@ -37,14 +38,17 @@ vi.mock('../src/utils/logger', () => ({
 	logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
+import { getProviderMeta } from '../src/agents/provider-meta';
 import { projectRoutes } from '../src/trpc/project.routes';
 import { router } from '../src/trpc/trpc';
+import { resolveProviderModel, resolveProviderSettings } from '../src/utils/llm';
 
 const testRouter = router(projectRoutes);
 const directories: string[] = [];
 
 describe('project LLM config overrides', () => {
 	beforeEach(() => {
+		testState.existingConfig = null;
 		testState.upsertProjectLlmConfig.mockReset();
 		testState.upsertProjectLlmConfig.mockImplementation((config) => ({
 			id: 'config-id',
@@ -55,10 +59,13 @@ describe('project LLM config overrides', () => {
 			updatedAt: new Date(),
 		}));
 		delete process.env.OPENAI_API_KEY;
+		delete process.env.OPENAI_BASE_URL;
 		delete process.env.AWS_BEARER_TOKEN_BEDROCK;
 		delete process.env.AWS_ACCESS_KEY_ID;
 		delete process.env.AWS_SECRET_ACCESS_KEY;
 	});
+
+	afterEach(() => vi.unstubAllEnvs());
 
 	afterAll(() => {
 		for (const directory of directories) {
@@ -103,6 +110,276 @@ describe('project LLM config overrides', () => {
 			}),
 		);
 	});
+	describe('deployment credentials and project endpoints', () => {
+		beforeEach(() => {
+			writeConfig([]);
+			process.env.OPENAI_API_KEY = 'sk-deployment-test';
+		});
+
+		it('uses the deployment key when no endpoint override is requested', async () => {
+			await callUpsert('openai');
+			expect(testState.upsertProjectLlmConfig).toHaveBeenCalledWith(
+				expect.objectContaining({ apiKey: 'sk-deployment-test', baseUrl: null }),
+			);
+		});
+
+		it('rejects inheriting a deployment key for a project endpoint', async () => {
+			await expect(callUpsert('openai', { baseUrl: 'https://gateway.example/v1' })).rejects.toMatchObject({
+				code: 'BAD_REQUEST',
+			});
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it('rejects changing the endpoint of a previously inherited deployment key', async () => {
+			testState.existingConfig = { apiKey: 'sk-deployment-test' };
+			await expect(callUpsert('openai', { baseUrl: 'https://gateway.example/v1' })).rejects.toMatchObject({
+				code: 'BAD_REQUEST',
+			});
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it.each(['settings', 'model'] as const)(
+			'rejects a stored unsafe endpoint during %s resolution',
+			async (kind) => {
+				testState.existingConfig = { apiKey: 'sk-deployment-test', baseUrl: 'https://gateway.example/v1' };
+				await expect(resolve(kind)).rejects.toThrow('needs its own API key');
+			},
+		);
+
+		it.each(['settings', 'model'] as const)(
+			'rejects a YAML endpoint using a deployment fallback during %s resolution',
+			async (kind) => {
+				writeConfig([
+					'llm:',
+					'  providers:',
+					'  - provider: openai',
+					'    base_url: https://gateway.example/v1',
+				]);
+				await expect(resolve(kind)).rejects.toThrow('needs its own API key');
+			},
+		);
+
+		it.each(['settings', 'model'] as const)(
+			'rejects interpolated deployment credentials during %s resolution',
+			async (kind) => {
+				vi.stubEnv('ANTHROPIC_API_KEY', 'other-deployment-key');
+				writeConfig([
+					'llm:',
+					'  providers:',
+					'  - provider: openai',
+					`    api_key: prefix-{{ env('ANTHROPIC_API_KEY') }}-suffix`,
+					'    base_url: https://gateway.example/v1',
+				]);
+				await expect(resolve(kind)).rejects.toThrow('needs its own API key');
+			},
+		);
+
+		it.each(['settings', 'model'] as const)(
+			'rejects deployment credentials interpolated into the URL during %s resolution',
+			async (kind) => {
+				writeConfig([
+					'llm:',
+					'  providers:',
+					'  - provider: openai',
+					'    api_key: sk-project-test',
+					`    base_url: https://gateway.example/{{ env('OPENAI_API_KEY') }}`,
+				]);
+				await expect(resolve(kind)).rejects.toThrow('needs its own API key');
+			},
+		);
+
+		it('rejects a stored decorated deployment credential', async () => {
+			await expect(
+				callUpsert('openai', { apiKey: 'Bearer sk-deployment-test', baseUrl: 'https://gateway.example/v1' }),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it('rejects a custom Vertex endpoint using ambient credentials', async () => {
+			await expect(
+				callUpsert('vertex', {
+					baseUrl: 'https://gateway.example/v1',
+					credentials: { project: 'project-test', location: 'us-central1' },
+				}),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it('rejects a custom Vertex endpoint with malformed explicit credentials', async () => {
+			await expect(
+				callUpsert('vertex', {
+					baseUrl: 'https://gateway.example/v1',
+					credentials: { serviceAccountJson: '{}' },
+				}),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		});
+
+		it('reports unsafe stored settings as a client error', async () => {
+			testState.existingConfig = { apiKey: 'sk-deployment-test', baseUrl: 'https://gateway.example/v1' };
+			await expect(resolveProviderSettings('project-id', 'openai')).rejects.toMatchObject({
+				code: 400,
+				codeMessage: 'BAD_REQUEST',
+			});
+		});
+
+		it('allows a custom Vertex endpoint with a separate inline service account', async () => {
+			vi.stubEnv(
+				'VERTEX_GOOGLE_SERVICE_ACCOUNT_JSON',
+				'{"client_email":"deployment@example.com","private_key":"deployment-key"}',
+			);
+			writeConfig([
+				'llm:',
+				'  providers:',
+				'  - provider: vertex',
+				'    base_url: https://gateway.example/v1',
+				`    service_account_json: '{"client_email":"project@example.com","private_key":"project-key"}'`,
+			]);
+			await expect(resolveProviderSettings('project-id', 'vertex')).resolves.toMatchObject({
+				credentials: {
+					serviceAccountJson: '{"client_email":"project@example.com","private_key":"project-key"}',
+				},
+			});
+		});
+
+		it('rejects server credential file paths for a custom Vertex endpoint', async () => {
+			vi.stubEnv(
+				'VERTEX_GOOGLE_SERVICE_ACCOUNT_JSON',
+				'{"client_email":"deployment@example.com","private_key":"deployment-key"}',
+			);
+			await expect(
+				callUpsert('vertex', {
+					baseUrl: 'https://gateway.example/v1',
+					credentials: { keyFile: '/project/service-account.json' },
+				}),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it.each([
+			['bedrock', 'region'],
+			['vertex', 'location'],
+			['azure', 'resourceName'],
+		] as const)('rejects host-changing %s %s values without an explicit URL', async (provider, field) => {
+			await expect(callUpsert(provider, { credentials: { [field]: 'gateway.example#' } })).rejects.toMatchObject({
+				code: 'BAD_REQUEST',
+			});
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it('rejects an Azure resource override with the deployment key', async () => {
+			vi.stubEnv('AZURE_API_KEY', 'azure-deployment-key');
+			vi.stubEnv('AZURE_RESOURCE_NAME', 'deployment-resource');
+			await expect(
+				callUpsert('azure', {
+					apiKey: 'azure-deployment-key',
+					credentials: { resourceName: 'project-resource' },
+				}),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		});
+
+		it('allows the deployment Azure resource', async () => {
+			vi.stubEnv('AZURE_API_KEY', 'azure-deployment-key');
+			vi.stubEnv('AZURE_RESOURCE_NAME', 'deployment-resource');
+			await callUpsert('azure', {
+				apiKey: 'azure-deployment-key',
+				credentials: { resourceName: 'deployment-resource' },
+			});
+			expect(testState.upsertProjectLlmConfig).toHaveBeenCalled();
+		});
+
+		it('rejects a deployment secret field embedded in a custom URL', async () => {
+			vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'deployment/aws+secret');
+			await expect(
+				callUpsert('openai', {
+					apiKey: 'project-key',
+					baseUrl: `https://gateway.example/${encodeURIComponent('deployment/aws+secret')}`,
+				}),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		});
+
+		it('rejects inheriting the deployment Ollama key for a custom endpoint', async () => {
+			vi.stubEnv('OLLAMA_API_KEY', 'ollama-deployment-key');
+			await expect(callUpsert('ollama', { baseUrl: 'https://gateway.example/v1' })).rejects.toMatchObject({
+				code: 'BAD_REQUEST',
+			});
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it.each(['settings', 'model'] as const)(
+			'rejects an Ollama YAML deployment-key fallback during %s resolution',
+			async (kind) => {
+				vi.stubEnv('OLLAMA_API_KEY', 'ollama-deployment-key');
+				writeConfig([
+					'llm:',
+					'  providers:',
+					'  - provider: ollama',
+					'    base_url: https://gateway.example/v1',
+				]);
+				await expect(
+					kind === 'settings'
+						? resolveProviderSettings('project-id', 'ollama')
+						: resolveProviderModel('project-id', 'ollama', 'llama3.2'),
+				).rejects.toThrow('needs its own API key');
+			},
+		);
+
+		it('rejects an AWS session token embedded in a custom endpoint', async () => {
+			vi.stubEnv('AWS_SESSION_TOKEN', 'deployment-session-token');
+			writeConfig([
+				'llm:',
+				'  providers:',
+				'  - provider: openai',
+				'    api_key: project-key',
+				`    base_url: https://gateway.example/{{ env('AWS_SESSION_TOKEN') }}`,
+			]);
+			await expect(resolveProviderSettings('project-id', 'openai')).rejects.toThrow('needs its own API key');
+		});
+
+		it('accepts YAML endpoints with a separate project key', async () => {
+			writeConfig([
+				'llm:',
+				'  providers:',
+				'  - provider: openai',
+				'    api_key: sk-project-test',
+				'    base_url: https://gateway.example/v1',
+			]);
+			await expect(resolveProviderSettings('project-id', 'openai')).resolves.toMatchObject({
+				apiKey: 'sk-project-test',
+				baseURL: 'https://gateway.example/v1',
+			});
+		});
+
+		it('accepts a project endpoint with a separate project key', async () => {
+			await callUpsert('openai', { baseUrl: 'https://gateway.example/v1', apiKey: 'sk-project-test' });
+			expect(testState.upsertProjectLlmConfig).toHaveBeenCalledWith(
+				expect.objectContaining({ apiKey: 'sk-project-test', baseUrl: 'https://gateway.example/v1' }),
+			);
+		});
+
+		it('accepts the explicitly configured deployment endpoint with trailing slashes', async () => {
+			process.env.OPENAI_BASE_URL = 'https://deployment.example/v1/';
+			await callUpsert('openai', { baseUrl: 'https://deployment.example/v1' });
+			expect(testState.upsertProjectLlmConfig).toHaveBeenCalled();
+		});
+
+		it.each([
+			['anthropic', 'https://api.anthropic.com/v1'],
+			['google', 'https://generativelanguage.googleapis.com/v1beta'],
+			['mistral', 'https://api.mistral.ai/v1'],
+		] as const)('accepts the SDK default endpoint for %s', async (provider, endpoint) => {
+			vi.stubEnv(getProviderMeta(provider).envVar, 'deployment-test-key');
+			writeConfig(['llm:', '  providers:', `  - provider: ${provider}`, `    base_url: ${endpoint}/`]);
+			await expect(resolveProviderSettings('project-id', provider)).resolves.toMatchObject({
+				apiKey: 'deployment-test-key',
+				baseURL: `${endpoint}/`,
+			});
+		});
+
+		it('accepts an explicit provider default endpoint', async () => {
+			await callUpsert('openai', { baseUrl: 'https://api.openai.com/v1/' });
+			expect(testState.upsertProjectLlmConfig).toHaveBeenCalled();
+		});
+	});
 });
 
 function project() {
@@ -121,7 +398,10 @@ function writeConfig(lines: string[]): void {
 	testState.projectPath = directory;
 }
 
-async function callUpsert(provider: 'openai' | 'bedrock'): Promise<void> {
+async function callUpsert(
+	provider: 'openai' | 'bedrock' | 'azure' | 'vertex' | 'ollama',
+	options: { apiKey?: string; baseUrl?: string; credentials?: Record<string, string> } = {},
+): Promise<void> {
 	const caller = testRouter.createCaller({
 		session: { user: { id: 'user-id' } },
 		selectedProjectId: 'project-id',
@@ -132,5 +412,12 @@ async function callUpsert(provider: 'openai' | 'bedrock'): Promise<void> {
 		enabledModels: [],
 		customModels: [],
 		modelSettings: {},
+		...options,
 	});
+}
+
+function resolve(kind: 'settings' | 'model') {
+	return kind === 'settings'
+		? resolveProviderSettings('project-id', 'openai')
+		: resolveProviderModel('project-id', 'openai', 'gpt-4o');
 }

@@ -17,6 +17,7 @@ import s, {
 } from '../db/abstractSchema';
 import { db, DBTransaction } from '../db/db';
 import dbConfig, { Dialect } from '../db/dbConfig';
+import { QueryProgram, runTransaction } from '../db/query-transaction';
 import {
 	ForkMetadata,
 	MessageVersionInfo,
@@ -299,76 +300,84 @@ export const getChatMessages = async (chatId: string): Promise<UIMessage[]> => {
 export const deleteLastEmptyTurn = async (
 	chatId: string,
 ): Promise<{ outcome: 'deleted' | 'kept'; chatDeleted: boolean }> => {
-	return db.transaction(async (t) => {
-		const activeMessages = await t
-			.select({
-				id: s.chatMessage.id,
-				role: s.chatMessage.role,
-				versionGroupId: s.chatMessage.versionGroupId,
-			})
-			.from(s.chatMessage)
-			.where(and(eq(s.chatMessage.chatId, chatId), isNull(s.chatMessage.supersededAt)))
-			.orderBy(desc(s.chatMessage.createdAt))
-			.execute();
-		const latestMessage = activeMessages.at(0);
-		if (!latestMessage || latestMessage.role === 'system') {
-			return { outcome: 'kept', chatDeleted: false };
-		}
-
-		const userMessage =
-			latestMessage.role === 'user' ? latestMessage : activeMessages.find((message) => message.role === 'user');
-		if (!userMessage) {
-			return { outcome: 'kept', chatDeleted: false };
-		}
-
-		if (latestMessage.role === 'assistant') {
-			const [semanticContentPart] = await t
-				.select({ id: s.messagePart.id })
-				.from(s.messagePart)
-				.where(
-					and(
-						eq(s.messagePart.messageId, latestMessage.id),
-						notInArray(s.messagePart.type, ['step-start', 'reasoning', 'tool-suggest_follow_ups']),
-					),
-				)
-				.limit(1)
-				.execute();
-			if (semanticContentPart) {
+	return runTransaction((t) =>
+		(function* (): QueryProgram<{ outcome: 'deleted' | 'kept'; chatDeleted: boolean }> {
+			const activeMessages = (yield t
+				.select({
+					id: s.chatMessage.id,
+					role: s.chatMessage.role,
+					versionGroupId: s.chatMessage.versionGroupId,
+				})
+				.from(s.chatMessage)
+				.where(and(eq(s.chatMessage.chatId, chatId), isNull(s.chatMessage.supersededAt)))
+				.orderBy(desc(s.chatMessage.createdAt))) as Array<{
+				id: string;
+				role: 'user' | 'assistant' | 'system';
+				versionGroupId: string | null;
+			}>;
+			const latestMessage = activeMessages.at(0);
+			if (!latestMessage || latestMessage.role === 'system') {
 				return { outcome: 'kept', chatDeleted: false };
 			}
-		}
 
-		if (userMessage.versionGroupId) {
-			const [versionGroup] = await t
+			const userMessage =
+				latestMessage.role === 'user'
+					? latestMessage
+					: activeMessages.find((message) => message.role === 'user');
+			if (!userMessage) {
+				return { outcome: 'kept', chatDeleted: false };
+			}
+
+			if (latestMessage.role === 'assistant') {
+				const [semanticContentPart] = (yield t
+					.select({ id: s.messagePart.id })
+					.from(s.messagePart)
+					.where(
+						and(
+							eq(s.messagePart.messageId, latestMessage.id),
+							notInArray(s.messagePart.type, ['step-start', 'reasoning', 'tool-suggest_follow_ups']),
+						),
+					)
+					.limit(1)) as Array<{ id: string }>;
+				if (semanticContentPart) {
+					return { outcome: 'kept', chatDeleted: false };
+				}
+			}
+
+			if (userMessage.versionGroupId) {
+				const [versionGroup] = (yield t
+					.select({ value: count() })
+					.from(s.chatMessage)
+					.where(
+						and(
+							eq(s.chatMessage.chatId, chatId),
+							eq(s.chatMessage.versionGroupId, userMessage.versionGroupId),
+						),
+					)) as Array<{ value: number }>;
+				if ((versionGroup?.value ?? 0) > 1) {
+					return { outcome: 'kept', chatDeleted: false };
+				}
+			}
+
+			const messageIds = [userMessage.id, ...(latestMessage.role === 'assistant' ? [latestMessage.id] : [])];
+			yield t
+				.delete(s.chatMessage)
+				.where(and(eq(s.chatMessage.chatId, chatId), inArray(s.chatMessage.id, messageIds)));
+
+			const [remaining] = (yield t
 				.select({ value: count() })
 				.from(s.chatMessage)
-				.where(
-					and(eq(s.chatMessage.chatId, chatId), eq(s.chatMessage.versionGroupId, userMessage.versionGroupId)),
-				)
-				.execute();
-			if ((versionGroup?.value ?? 0) > 1) {
-				return { outcome: 'kept', chatDeleted: false };
+				.where(and(eq(s.chatMessage.chatId, chatId), isNull(s.chatMessage.supersededAt)))) as Array<{
+				value: number;
+			}>;
+			if ((remaining?.value ?? 0) > 0) {
+				return { outcome: 'deleted', chatDeleted: false };
 			}
-		}
 
-		const messageIds = [userMessage.id, ...(latestMessage.role === 'assistant' ? [latestMessage.id] : [])];
-		await t
-			.delete(s.chatMessage)
-			.where(and(eq(s.chatMessage.chatId, chatId), inArray(s.chatMessage.id, messageIds)))
-			.execute();
-
-		const [remaining] = await t
-			.select({ value: count() })
-			.from(s.chatMessage)
-			.where(and(eq(s.chatMessage.chatId, chatId), isNull(s.chatMessage.supersededAt)))
-			.execute();
-		if ((remaining?.value ?? 0) > 0) {
-			return { outcome: 'deleted', chatDeleted: false };
-		}
-
-		await t.delete(s.chat).where(eq(s.chat.id, chatId)).execute();
-		return { outcome: 'deleted', chatDeleted: true };
-	});
+			yield t.delete(s.chat).where(eq(s.chat.id, chatId));
+			return { outcome: 'deleted', chatDeleted: true };
+		})(),
+	);
 };
 
 export const getChatOwnerId = async (chatId: string): Promise<string | undefined> => {
@@ -384,29 +393,31 @@ export const getChatOwnerId = async (chatId: string): Promise<string | undefined
 
 /** Marks all messages from a given message id onwards as superseeded (won't be used in the conversation anymore). */
 export const supersedeMessagesFrom = async (chatId: string, fromMessageId: string): Promise<void> => {
-	await db.transaction(async (t) => {
-		const [fromMessage] = await t
-			.select({ createdAt: s.chatMessage.createdAt })
-			.from(s.chatMessage)
-			.where(and(eq(s.chatMessage.id, fromMessageId), eq(s.chatMessage.chatId, chatId)))
-			.execute();
+	await runTransaction((t) =>
+		(function* (): QueryProgram<void> {
+			const [fromMessage] = (yield t
+				.select({ createdAt: s.chatMessage.createdAt })
+				.from(s.chatMessage)
+				.where(and(eq(s.chatMessage.id, fromMessageId), eq(s.chatMessage.chatId, chatId)))) as Array<{
+				createdAt: Date;
+			}>;
 
-		if (!fromMessage) {
-			return;
-		}
+			if (!fromMessage) {
+				return;
+			}
 
-		await t
-			.update(s.chatMessage)
-			.set({ supersededAt: new Date() })
-			.where(
-				and(
-					eq(s.chatMessage.chatId, chatId),
-					gte(s.chatMessage.createdAt, fromMessage.createdAt),
-					isNull(s.chatMessage.supersededAt),
-				),
-			)
-			.execute();
-	});
+			yield t
+				.update(s.chatMessage)
+				.set({ supersededAt: new Date() })
+				.where(
+					and(
+						eq(s.chatMessage.chatId, chatId),
+						gte(s.chatMessage.createdAt, fromMessage.createdAt),
+						isNull(s.chatMessage.supersededAt),
+					),
+				);
+		})(),
+	);
 };
 
 /**
@@ -444,52 +455,55 @@ export const resolveVersionGroupIdForEdit = async (
  * branch, superseding whatever conversation currently follows the turn.
  */
 export const switchMessageVersion = async (chatId: string, targetMessageId: string): Promise<void> => {
-	await db.transaction(async (t) => {
-		const [target] = await t
-			.select({
-				versionGroupId: s.chatMessage.versionGroupId,
-				supersededAt: s.chatMessage.supersededAt,
-			})
-			.from(s.chatMessage)
-			.where(and(eq(s.chatMessage.id, targetMessageId), eq(s.chatMessage.chatId, chatId)))
-			.execute();
+	await runTransaction((t) =>
+		(function* (): QueryProgram<void> {
+			const [target] = (yield t
+				.select({
+					versionGroupId: s.chatMessage.versionGroupId,
+					supersededAt: s.chatMessage.supersededAt,
+				})
+				.from(s.chatMessage)
+				.where(and(eq(s.chatMessage.id, targetMessageId), eq(s.chatMessage.chatId, chatId)))) as Array<{
+				versionGroupId: string | null;
+				supersededAt: Date | null;
+			}>;
 
-		if (!target?.versionGroupId || target.supersededAt === null) {
-			return;
-		}
+			if (!target?.versionGroupId || target.supersededAt === null) {
+				return;
+			}
 
-		const groupRows = await t
-			.select({ createdAt: s.chatMessage.createdAt })
-			.from(s.chatMessage)
-			.where(and(eq(s.chatMessage.chatId, chatId), eq(s.chatMessage.versionGroupId, target.versionGroupId)))
-			.execute();
+			const groupRows = (yield t
+				.select({ createdAt: s.chatMessage.createdAt })
+				.from(s.chatMessage)
+				.where(
+					and(eq(s.chatMessage.chatId, chatId), eq(s.chatMessage.versionGroupId, target.versionGroupId)),
+				)) as Array<{ createdAt: Date }>;
 
-		if (groupRows.length === 0) {
-			return;
-		}
+			if (groupRows.length === 0) {
+				return;
+			}
 
-		const forkPoint = new Date(Math.min(...groupRows.map((row) => row.createdAt.getTime())));
+			const forkPoint = new Date(Math.min(...groupRows.map((row) => row.createdAt.getTime())));
 
-		await t
-			.update(s.chatMessage)
-			.set({ supersededAt: new Date() })
-			.where(
-				and(
-					eq(s.chatMessage.chatId, chatId),
-					isNull(s.chatMessage.supersededAt),
-					gte(s.chatMessage.createdAt, forkPoint),
-				),
-			)
-			.execute();
+			yield t
+				.update(s.chatMessage)
+				.set({ supersededAt: new Date() })
+				.where(
+					and(
+						eq(s.chatMessage.chatId, chatId),
+						isNull(s.chatMessage.supersededAt),
+						gte(s.chatMessage.createdAt, forkPoint),
+					),
+				);
 
-		await t
-			.update(s.chatMessage)
-			.set({ supersededAt: null })
-			.where(and(eq(s.chatMessage.chatId, chatId), eq(s.chatMessage.supersededAt, target.supersededAt)))
-			.execute();
+			yield t
+				.update(s.chatMessage)
+				.set({ supersededAt: null })
+				.where(and(eq(s.chatMessage.chatId, chatId), eq(s.chatMessage.supersededAt, target.supersededAt)));
 
-		await t.update(s.chat).set({ updatedAt: new Date() }).where(eq(s.chat.id, chatId)).execute();
-	});
+			yield t.update(s.chat).set({ updatedAt: new Date() }).where(eq(s.chat.id, chatId));
+		})(),
+	);
 };
 
 export const createChat = async (
@@ -501,61 +515,64 @@ export const createChat = async (
 	},
 	additionalParts: UIMessagePart[] = [],
 ): Promise<[DBChat, DBChatMessage]> => {
-	return db.transaction(async (t): Promise<[DBChat, DBChatMessage]> => {
-		const [savedChat] = await t.insert(s.chat).values(newChat).returning().execute();
+	return runTransaction((t) =>
+		(function* (): QueryProgram<[DBChat, DBChatMessage]> {
+			const [savedChat] = (yield t.insert(s.chat).values(newChat).returning()) as [DBChat];
 
-		const messageId = crypto.randomUUID();
-		const [savedMessage] = await t
-			.insert(s.chatMessage)
-			.values({
-				id: messageId,
-				chatId: savedChat.id,
-				senderUserId: savedChat.userId,
-				role: 'user',
-				source: newUserMessage.source,
-				citation: newUserMessage.citation ?? null,
-				versionGroupId: messageId,
-			})
-			.returning()
-			.execute();
+			const messageId = crypto.randomUUID();
+			const [savedMessage] = (yield t
+				.insert(s.chatMessage)
+				.values({
+					id: messageId,
+					chatId: savedChat.id,
+					senderUserId: savedChat.userId,
+					role: 'user',
+					source: newUserMessage.source,
+					citation: newUserMessage.citation ?? null,
+					versionGroupId: messageId,
+				})
+				.returning()) as [DBChatMessage];
 
-		const parts: UIMessagePart[] = [{ type: 'text', text: newUserMessage.text }, ...additionalParts];
-		const dbParts = mapUIPartsToDBParts(parts, savedMessage.id);
-		await t.insert(s.messagePart).values(dbParts).execute();
+			const parts: UIMessagePart[] = [{ type: 'text', text: newUserMessage.text }, ...additionalParts];
+			const dbParts = mapUIPartsToDBParts(parts, savedMessage.id);
+			yield t.insert(s.messagePart).values(dbParts);
 
-		return [savedChat, savedMessage];
-	});
+			return [savedChat, savedMessage];
+		})(),
+	);
 };
 
 export const createForkedChat = async (newChat: NewChat, messages: Array<Omit<UIMessage, 'id'>>): Promise<DBChat> => {
-	return db.transaction(async (t) => {
-		const [savedChat] = await t.insert(s.chat).values(newChat).returning().execute();
+	return runTransaction((t) =>
+		(function* (): QueryProgram<DBChat> {
+			const [savedChat] = (yield t.insert(s.chat).values(newChat).returning()) as [DBChat];
 
-		if (messages.length === 0) {
+			if (messages.length === 0) {
+				return savedChat;
+			}
+
+			const baseTime = Date.now();
+			const messageRows = messages.map((message, i) => ({
+				id: crypto.randomUUID(),
+				chatId: savedChat.id,
+				role: message.role,
+				isForked: true,
+				createdAt: new Date(baseTime + i),
+			}));
+
+			yield t.insert(s.chatMessage).values(messageRows);
+
+			const allParts = messages.flatMap((message, i) =>
+				remapToolCallIds(mapUIPartsToDBParts(message.parts, messageRows[i].id)),
+			);
+
+			if (allParts.length > 0) {
+				yield t.insert(s.messagePart).values(allParts);
+			}
+
 			return savedChat;
-		}
-
-		const baseTime = Date.now();
-		const messageRows = messages.map((message, i) => ({
-			id: crypto.randomUUID(),
-			chatId: savedChat.id,
-			role: message.role,
-			isForked: true,
-			createdAt: new Date(baseTime + i),
-		}));
-
-		await t.insert(s.chatMessage).values(messageRows).execute();
-
-		const allParts = messages.flatMap((message, i) =>
-			remapToolCallIds(mapUIPartsToDBParts(message.parts, messageRows[i].id)),
-		);
-
-		if (allParts.length > 0) {
-			await t.insert(s.messagePart).values(allParts).execute();
-		}
-
-		return savedChat;
-	});
+		})(),
+	);
 };
 
 /** Assigns fresh tool call IDs so forked parts don't collide with the source chat's unique constraint. */
@@ -586,49 +603,49 @@ export const upsertMessage = async (
 	},
 	options: { updateMetadata?: boolean } = {},
 ): Promise<{ messageId: string }> => {
-	return db.transaction(async (t) => {
-		const messageId = message.id ?? crypto.randomUUID();
-		const messageValues = {
-			id: messageId,
-			chatId: message.chatId,
-			senderUserId: message.senderUserId,
-			role: message.role,
-			stopReason: message.stopReason,
-			errorMessage: getErrorMessage(message.error),
-			llmProvider: message.llmProvider,
-			llmModelId: message.llmModelId,
-			source: message.source,
-			isForked: message.isForked,
-			citation: message.citation ?? null,
-			versionGroupId: message.versionGroupId ?? (message.role === 'user' ? messageId : undefined),
-			...message.tokenUsage,
-		};
-		const insert = t.insert(s.chatMessage).values(messageValues);
-		if (options.updateMetadata === false) {
-			await insert.onConflictDoNothing({ target: s.chatMessage.id }).execute();
-		} else {
-			const { id, versionGroupId, ...updateValues } = messageValues;
-			void id;
-			void versionGroupId;
-			await insert
-				.onConflictDoUpdate({
+	return runTransaction((t) =>
+		(function* (): QueryProgram<{ messageId: string }> {
+			const messageId = message.id ?? crypto.randomUUID();
+			const messageValues = {
+				id: messageId,
+				chatId: message.chatId,
+				senderUserId: message.senderUserId,
+				role: message.role,
+				stopReason: message.stopReason,
+				errorMessage: getErrorMessage(message.error),
+				llmProvider: message.llmProvider,
+				llmModelId: message.llmModelId,
+				source: message.source,
+				isForked: message.isForked,
+				citation: message.citation ?? null,
+				versionGroupId: message.versionGroupId ?? (message.role === 'user' ? messageId : undefined),
+				...message.tokenUsage,
+			};
+			const insert = t.insert(s.chatMessage).values(messageValues);
+			if (options.updateMetadata === false) {
+				yield insert.onConflictDoNothing({ target: s.chatMessage.id });
+			} else {
+				const { id, versionGroupId, ...updateValues } = messageValues;
+				void id;
+				void versionGroupId;
+				yield insert.onConflictDoUpdate({
 					target: s.chatMessage.id,
 					set: stripUndefined(updateValues),
-				})
-				.execute();
-		}
+				});
+			}
 
-		await t.delete(s.messagePart).where(eq(s.messagePart.messageId, messageId)).execute();
-		const dbParts = mapUIPartsToDBParts(message.parts, messageId);
-		if (dbParts.length) {
-			const partsToInsert = await remapToolCallIdsCollidingWithOtherMessages(t, dbParts, messageId);
-			await t.insert(s.messagePart).values(partsToInsert).execute();
-		}
+			yield t.delete(s.messagePart).where(eq(s.messagePart.messageId, messageId));
+			const dbParts = mapUIPartsToDBParts(message.parts, messageId);
+			if (dbParts.length) {
+				const partsToInsert = yield* remapToolCallIdsCollidingWithOtherMessages(t, dbParts, messageId);
+				yield t.insert(s.messagePart).values(partsToInsert);
+			}
 
-		await t.update(s.chat).set({ updatedAt: new Date() }).where(eq(s.chat.id, message.chatId)).execute();
+			yield t.update(s.chat).set({ updatedAt: new Date() }).where(eq(s.chat.id, message.chatId));
 
-		return { messageId };
-	});
+			return { messageId };
+		})(),
+	);
 };
 
 /**
@@ -637,21 +654,22 @@ export const upsertMessage = async (
  * `tool_call_id` only tolerates one such id, so any that already belong to another message are namespaced with
  * the message id to keep them globally unique while staying stable across re-persists of the same message.
  */
-const remapToolCallIdsCollidingWithOtherMessages = async (
+const remapToolCallIdsCollidingWithOtherMessages = function* (
 	t: DBTransaction,
 	parts: NewMessagePart[],
 	messageId: string,
-): Promise<NewMessagePart[]> => {
+): QueryProgram<NewMessagePart[]> {
 	const toolCallIds = parts.map((part) => part.toolCallId).filter((id): id is string => Boolean(id));
 	if (toolCallIds.length === 0) {
 		return parts;
 	}
 
-	const existing = await t
+	const existing = (yield t
 		.select({ toolCallId: s.messagePart.toolCallId })
 		.from(s.messagePart)
-		.where(and(inArray(s.messagePart.toolCallId, toolCallIds), ne(s.messagePart.messageId, messageId)))
-		.execute();
+		.where(and(inArray(s.messagePart.toolCallId, toolCallIds), ne(s.messagePart.messageId, messageId)))) as Array<{
+		toolCallId: string | null;
+	}>;
 	if (existing.length === 0) {
 		return parts;
 	}

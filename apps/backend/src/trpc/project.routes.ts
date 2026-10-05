@@ -44,12 +44,14 @@ import {
 } from '../types/llm';
 import { getChatContextUsage } from '../utils/chat-context-usage';
 import { isValidIsoDateString } from '../utils/date';
+import { HandlerError } from '../utils/error';
 import {
 	getEnvApiKey,
 	getEnvBaseUrls,
 	getEnvProviders,
 	getProjectAvailableModels,
 	getProjectConfigLlm,
+	validateProjectProviderSettings,
 } from '../utils/llm';
 import { extractConfiguredSemanticLayer, extractRequiredEnvVars } from '../utils/nao-config';
 import { findConfigLlmProvider } from '../utils/nao-config-llm';
@@ -257,6 +259,20 @@ export const projectRoutes = {
 				throw new Error(
 					`API key is required for ${input.provider}. Provide one or set it as an environment variable.`,
 				);
+			}
+
+			const storedApiKey = apiKey ?? existingConfig?.apiKey;
+			try {
+				validateProjectProviderSettings(input.provider, {
+					apiKey: storedApiKey ?? '',
+					baseURL: input.baseUrl || undefined,
+					credentials: credentials ?? existingConfig?.credentials ?? undefined,
+				});
+			} catch (error) {
+				if (error instanceof HandlerError) {
+					throw new TRPCError({ code: error.codeMessage, message: error.message, cause: error });
+				}
+				throw error;
 			}
 
 			const enabledModels = input.enabledModels ?? [];
