@@ -1,3 +1,4 @@
+import { createPrivateKey, generateKeyPairSync } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 
 const testState = vi.hoisted(() => ({
 	projectPath: '',
-	existingConfig: null as { apiKey: string; baseUrl?: string | null } | null,
+	existingConfig: null as { apiKey: string; baseUrl?: string | null; credentials?: Record<string, string> } | null,
 	upsertProjectLlmConfig: vi.fn(),
 }));
 
@@ -253,6 +254,92 @@ describe('project LLM config overrides', () => {
 				}),
 			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
 			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it('recognizes the deployment private key across PEM formatting and encoding variants', async () => {
+			const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
+			const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+			vi.stubEnv(
+				'VERTEX_GOOGLE_SERVICE_ACCOUNT_JSON',
+				JSON.stringify({ client_email: 'deployment@example.com', private_key: pem }),
+			);
+			const body = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+			const variants = [
+				pem.trimEnd(),
+				pem.replace(/\n/g, '\r\n'),
+				`-----BEGIN PRIVATE KEY-----\n${body.match(/.{1,40}/g)!.join('\n')}\n-----END PRIVATE KEY-----\n`,
+				privateKey.export({ type: 'pkcs1', format: 'pem' }).toString(),
+			];
+			for (const key of variants) {
+				expect(key.includes(pem)).toBe(false);
+				expect(createPrivateKey(key).export({ type: 'pkcs8', format: 'der' })).toEqual(
+					privateKey.export({ type: 'pkcs8', format: 'der' }),
+				);
+				await expect(
+					callUpsert('vertex', {
+						baseUrl: 'https://gateway.example/v1',
+						credentials: {
+							serviceAccountJson: JSON.stringify({
+								client_email: 'deployment@example.com',
+								private_key: key,
+							}),
+						},
+					}),
+				).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+				testState.existingConfig = {
+					apiKey: '',
+					baseUrl: 'https://gateway.example/v1',
+					credentials: {
+						serviceAccountJson: JSON.stringify({
+							client_email: 'deployment@example.com',
+							private_key: key,
+						}),
+					},
+				};
+				await expect(resolveProviderSettings('project-id', 'vertex')).rejects.toThrow(
+					'needs its own inline service account credentials',
+				);
+				await expect(resolveProviderModel('project-id', 'vertex', 'gemini-2.5-pro')).rejects.toThrow(
+					'needs its own inline service account credentials',
+				);
+			}
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+			testState.existingConfig = null;
+			const separateKey = generateKeyPairSync('rsa', { modulusLength: 1024 })
+				.privateKey.export({ type: 'pkcs8', format: 'pem' })
+				.toString();
+			await callUpsert('vertex', {
+				baseUrl: 'https://gateway.example/v1',
+				credentials: {
+					serviceAccountJson: JSON.stringify({
+						client_email: 'project@example.com',
+						private_key: separateKey,
+					}),
+				},
+			});
+			expect(testState.upsertProjectLlmConfig).toHaveBeenCalled();
+		});
+
+		it.each([
+			'{"private_key":"deployment-key","client_email":"deployment@example.com"}',
+			'{"client_email":"deployment@example.com","private_key":"deployment-\\u006bey","project_id":"other"}',
+		])('rejects a reformatted deployment service account on save and resolution: %s', async (account) => {
+			vi.stubEnv(
+				'VERTEX_GOOGLE_SERVICE_ACCOUNT_JSON',
+				'{ "client_email": "deployment@example.com", "private_key": "deployment-key" }',
+			);
+			const credentials = { serviceAccountJson: account };
+			await expect(
+				callUpsert('vertex', { baseUrl: 'https://gateway.example/v1', credentials }),
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+			testState.existingConfig = { apiKey: '', baseUrl: 'https://gateway.example/v1', credentials };
+			await expect(resolveProviderSettings('project-id', 'vertex')).rejects.toThrow(
+				'needs its own inline service account credentials',
+			);
+			await expect(resolveProviderModel('project-id', 'vertex', 'gemini-2.5-pro')).rejects.toThrow(
+				'needs its own inline service account credentials',
+			);
 		});
 
 		it.each([

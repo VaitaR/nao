@@ -1,3 +1,5 @@
+import { createPrivateKey } from 'node:crypto';
+
 import { type BackgroundModelCategory, selectBackgroundModel } from '@nao/shared';
 import { type LlmProvider, type LlmSelectedModel, providerKind } from '@nao/shared/types';
 
@@ -39,6 +41,28 @@ export function isProjectCustomBaseUrl(provider: LlmProvider, baseUrl: string | 
 	return !trusted.includes(normalize(baseUrl));
 }
 
+function parseServiceAccount(json: string | undefined): { client_email: string; private_key: string } | null {
+	try {
+		const account = JSON.parse(json ?? 'null');
+		return typeof account?.client_email === 'string' &&
+			account.client_email.trim() &&
+			typeof account?.private_key === 'string' &&
+			account.private_key.trim()
+			? account
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function privateKeyIdentity(key: string): string {
+	try {
+		return createPrivateKey(key).export({ type: 'pkcs8', format: 'der' }).toString('base64');
+	} catch {
+		return key.trim().replace(/\r\n/g, '\n');
+	}
+}
+
 export function projectUsesDeploymentCredentialsOnCustomEndpoint(
 	provider: LlmProvider,
 	settings: ProviderSettings,
@@ -52,30 +76,33 @@ export function projectUsesDeploymentCredentialsOnCustomEndpoint(
 	if (baseURL === deploymentResourceUrl || !isProjectCustomBaseUrl(provider, baseURL)) {
 		return false;
 	}
+	const serviceAccount = parseServiceAccount(settings.credentials?.serviceAccountJson);
 	if (providerKind(provider) === 'vertex') {
-		const credentials = settings.credentials;
-		let hasExplicitServiceAccount = false;
-		try {
-			const account = JSON.parse(credentials?.serviceAccountJson ?? 'null');
-			hasExplicitServiceAccount = !!(account?.client_email && account?.private_key);
-		} catch {
-			// Invalid JSON would make the provider fall back to ambient authentication.
-		}
-		if (!hasExplicitServiceAccount) {
+		if (!serviceAccount) {
 			return true;
 		}
+	}
+	const deploymentServiceAccount = parseServiceAccount(process.env.VERTEX_GOOGLE_SERVICE_ACCOUNT_JSON);
+	if (
+		serviceAccount &&
+		deploymentServiceAccount &&
+		privateKeyIdentity(serviceAccount.private_key) === privateKeyIdentity(deploymentServiceAccount.private_key)
+	) {
+		return true;
 	}
 	const secrets = Object.values(PROVIDER_META)
 		.flatMap((meta) => [
 			process.env[meta.envVar],
 			...(meta.auth.extraFields ?? []).filter((field) => field.secret).map((field) => process.env[field.envVar]),
 		])
-		.concat(process.env.AWS_SESSION_TOKEN)
+		.concat(process.env.AWS_SESSION_TOKEN, deploymentServiceAccount?.private_key)
 		.filter((value): value is string => !!value);
 	const values = [
 		providerKind(provider) === 'vertex' ? undefined : settings.apiKey,
 		baseURL,
 		...Object.values(settings.credentials ?? {}),
+		// Compare decoded secrets so JSON whitespace, order and escapes cannot hide reuse.
+		serviceAccount?.private_key,
 	];
 	// YAML interpolation may embed another provider's key or put a key inside the URL.
 	return secrets.some((secret) =>
