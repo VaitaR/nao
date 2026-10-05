@@ -1,0 +1,19 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1200
+PlayResY: 872
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
+Style: Demo,Arial,24,&H00FFFFFF,&H00FFFFFF,&H00111827,&H00111827,0,0,0,0,100,100,0,0,1,0,0,2,12,12,12,1
+
+[Events]
+Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+Dialogue: 0,0:00:00.10,0:00:06.10,Demo,,0,0,0,,DEMO | Step 1: Chat A has its saved answer
+Dialogue: 0,0:00:06.10,0:00:08.43,Demo,,0,0,0,,DEMO | Step 2: Switch to Chat B
+Dialogue: 0,0:00:08.43,0:00:14.43,Demo,,0,0,0,,DEMO | Chat B: Its own history is visible
+Dialogue: 0,0:00:14.43,0:00:16.59,Demo,,0,0,0,,DEMO | Step 3: Return to Chat A
+Dialogue: 0,0:00:16.59,0:00:22.59,Demo,,0,0,0,,DEMO | Chat A: The original history is still visible
+Dialogue: 0,0:00:22.59,0:00:26.77,Demo,,0,0,0,,DEMO | Step 4: Reload Chat A
+Dialogue: 0,0:00:26.77,0:00:34.69,Demo,,0,0,0,,DEMO | Result: History survives reload

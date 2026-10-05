@@ -400,12 +400,12 @@
 				"answer": "Synthetic QA: 120 users were active.",
 				"mutation": {
 					"httpStatus": 200,
-					"vote": "up",
+					"vote": "down",
 					"id": "pr-media-chat-a-assistant",
 					"comment": "Synthetic QA: the answer is clear."
 				},
 				"finalButtonState": {
-					"vote": "up",
+					"vote": "down",
 					"selected": true,
 					"className": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full text-primary"
 				},
@@ -495,6 +495,11 @@
 						"status": 200
 					},
 					{
+						"method": "POST",
+						"path": "/api/analytics/view-duration",
+						"status": 204
+					},
+					{
 						"method": "GET",
 						"path": "/api/trpc/chat.get",
 						"status": 200
@@ -565,34 +570,44 @@
 			"sha256": "df7f5ea7432168a3de09464ebce8b631b10e4b305d1f0d4fc123deef5d625409"
 		},
 		{
+			"path": "part-1-alert-scroll.ass",
+			"bytes": 769,
+			"sha256": "f4d93b6db4652ceac696796a8bacbc999a4f90a0eff88c74afec2673eaf643a0"
+		},
+		{
 			"path": "part-1-alert-scroll.gif",
-			"bytes": 684705,
-			"sha256": "cdcfb7b442c0add677bf994182a06b839d60a437b1419e9b814718d19aed2f25"
+			"bytes": 1504749,
+			"sha256": "e6b63f3f543de4a32730fba95bfa88e95944f79a5ae744228311dfb0afe4d2c2"
 		},
 		{
 			"path": "part-1-alert-scroll.mp4",
-			"bytes": 114700,
-			"sha256": "043019424fc98bd1e227af8e7750bbf0df79ae4f40af6268b3fa063bacfec971"
+			"bytes": 433467,
+			"sha256": "9fe9582859819aa3f3b1bcd0194f38573917e19fd2d1454f247c3b856065279b"
 		},
 		{
 			"path": "part-2-feedback-dialog.png",
-			"bytes": 14317,
-			"sha256": "01107c393806e3fe4ef95cc9203dd8dab0491453e7798a87ea315384082c45e9"
+			"bytes": 14574,
+			"sha256": "54b40393a3e9e6bceeac827b1072596f8313ea58be8fb246212ea3b6f41991a7"
 		},
 		{
 			"path": "part-2-feedback-final.png",
-			"bytes": 57002,
-			"sha256": "12705ec57c68ca29e60173980fdaf9b3fc31a9f272ceec038958bd8bb5f1f8f7"
+			"bytes": 44542,
+			"sha256": "e6b834741c79ba243481d7ac2f1e05406c2f37b7dd41af8ed0f729b4b0006cbf"
+		},
+		{
+			"path": "part-2-feedback.ass",
+			"bytes": 912,
+			"sha256": "28ce6d4963ff37e857cd8d96c9a4efc7b8f35a55b01cfc47f3c33ac8a50e4ada"
 		},
 		{
 			"path": "part-2-feedback.gif",
-			"bytes": 389402,
-			"sha256": "8c7c80f2f1913c80f18db072cdd69479df672cfb7cc16d77a37076b245fcceb1"
+			"bytes": 929865,
+			"sha256": "56185034a289635b1440c8bbd1a27fcb5c46d874b155785da6a109ddfc51aa0b"
 		},
 		{
 			"path": "part-2-feedback.mp4",
-			"bytes": 107416,
-			"sha256": "2dd0e130aff3d6b55fa5389cedd93a6b527b77e70a266afaef8e98ebee57a930"
+			"bytes": 296358,
+			"sha256": "9e2dc3749dfdcd889891418b20c97182cb262d05ffb7c7715e8d99766c7518cf"
 		},
 		{
 			"path": "part-3-chat-a-reload.png",
@@ -610,14 +625,109 @@
 			"sha256": "48e08e2bb0e75e8185d9ee5aaf47929270fcb052983ce29b09872e1acb07bdbc"
 		},
 		{
+			"path": "part-3-navigation.ass",
+			"bytes": 1089,
+			"sha256": "3af3729b46f49c106d51f08b6f28f565d88ef7ac5cf4d554577bd624b022a70b"
+		},
+		{
 			"path": "part-3-navigation.gif",
-			"bytes": 208129,
-			"sha256": "f6200298f7e0358510657820dab78ba6d5ff87518aee7d373440f0ed4130b32d"
+			"bytes": 1005570,
+			"sha256": "8a37f89637f7ba647376b2fa1d430ff1a40bad878adabaf7fa453fcc3df6091f"
 		},
 		{
 			"path": "part-3-navigation.mp4",
-			"bytes": 53886,
-			"sha256": "11da8a3ef61721c9da3307c4058c5d5a30aedb4735b8a127e7275ec992a17a61"
+			"bytes": 295896,
+			"sha256": "46b653aca4ba69419e6b934cd69c4624e2f6434f06d32a4ca62574ea9c23a1cf"
 		}
-	]
+	],
+	"videoPresentation": {
+		"captions": "Demo annotations in an added band below the unchanged application viewport.",
+		"pacing": "Re-recorded browser actions with 5\u20137 second reading pauses and gradual dialog scrolling.",
+		"clips": [
+			{
+				"path": "part-1-alert-scroll.mp4",
+				"durationSeconds": 21.36,
+				"gifDurationSeconds": 21.4,
+				"captionFile": "part-1-alert-scroll.ass",
+				"steps": [
+					{
+						"at": 0.1,
+						"text": "Step 1: The dialog fits the viewport"
+					},
+					{
+						"at": 5.18,
+						"text": "Step 2: Scroll through the long content"
+					},
+					{
+						"at": 13.45,
+						"text": "Result: Cancel and Confirm are reachable"
+					}
+				]
+			},
+			{
+				"path": "part-2-feedback.mp4",
+				"durationSeconds": 27.48,
+				"gifDurationSeconds": 27.5,
+				"captionFile": "part-2-feedback.ass",
+				"steps": [
+					{
+						"at": 0.1,
+						"text": "Step 1: Read the assistant answer"
+					},
+					{
+						"at": 5.13,
+						"text": "Step 2: Open feedback"
+					},
+					{
+						"at": 7.17,
+						"text": "Step 3: Enter a comment"
+					},
+					{
+						"at": 16.5,
+						"text": "Step 4: Submit feedback"
+					},
+					{
+						"at": 19.63,
+						"text": "Result: The vote is selected in the active chat"
+					}
+				]
+			},
+			{
+				"path": "part-3-navigation.mp4",
+				"durationSeconds": 34.68,
+				"gifDurationSeconds": 34.7,
+				"captionFile": "part-3-navigation.ass",
+				"steps": [
+					{
+						"at": 0.1,
+						"text": "Step 1: Chat A has its saved answer"
+					},
+					{
+						"at": 6.1,
+						"text": "Step 2: Switch to Chat B"
+					},
+					{
+						"at": 8.43,
+						"text": "Chat B: Its own history is visible"
+					},
+					{
+						"at": 14.43,
+						"text": "Step 3: Return to Chat A"
+					},
+					{
+						"at": 16.59,
+						"text": "Chat A: The original history is still visible"
+					},
+					{
+						"at": 22.59,
+						"text": "Step 4: Reload Chat A"
+					},
+					{
+						"at": 26.77,
+						"text": "Result: History survives reload"
+					}
+				]
+			}
+		]
+	}
 }

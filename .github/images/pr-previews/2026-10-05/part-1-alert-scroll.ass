@@ -1,0 +1,15 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 390
+PlayResY: 624
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
+Style: Demo,Arial,16,&H00FFFFFF,&H00FFFFFF,&H00111827,&H00111827,0,0,0,0,100,100,0,0,1,0,0,2,12,12,12,1
+
+[Events]
+Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+Dialogue: 0,0:00:00.10,0:00:05.18,Demo,,0,0,0,,DEMO | Step 1: The dialog fits the viewport
+Dialogue: 0,0:00:05.18,0:00:13.45,Demo,,0,0,0,,DEMO | Step 2: Scroll through the long content
+Dialogue: 0,0:00:13.45,0:00:21.37,Demo,,0,0,0,,DEMO | Result: Cancel and Confirm are reachable
