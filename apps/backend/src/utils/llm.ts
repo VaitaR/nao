@@ -1,6 +1,9 @@
+import { createPrivateKey } from 'node:crypto';
+
 import { type BackgroundModelCategory, selectBackgroundModel } from '@nao/shared';
 import { type LlmProvider, type LlmSelectedModel, providerKind } from '@nao/shared/types';
 
+import { PROVIDER_META } from '../agents/provider-meta';
 import {
 	createProviderModel,
 	getDefaultModelId,
@@ -12,6 +15,7 @@ import { env } from '../env';
 import * as projectQueries from '../queries/project.queries';
 import * as projectLlmConfigQueries from '../queries/project-llm-config.queries';
 import type { CustomModelMetadata, ProviderSettings } from '../types/llm';
+import { HandlerError } from './error';
 import { type ConfigLlm, type ConfigLlmProvider, findConfigLlmProvider, readProjectConfigLlm } from './nao-config-llm';
 
 export { getDefaultModelId };
@@ -25,6 +29,105 @@ export function getEnvApiKey(provider: LlmProvider): string | undefined {
 export function getEnvBaseUrl(provider: LlmProvider): string | undefined {
 	const { baseUrlEnvVar } = getProviderMeta(provider);
 	return baseUrlEnvVar ? process.env[baseUrlEnvVar] : undefined;
+}
+
+/** Deployment credentials are trusted only for the provider or deployment endpoint. */
+export function isProjectCustomBaseUrl(provider: LlmProvider, baseUrl: string | null | undefined): boolean {
+	if (!baseUrl) {
+		return false;
+	}
+	const normalize = (url: string | undefined) => url?.replace(/\/+$/, '');
+	const trusted = [getEnvBaseUrl(provider), getProviderMeta(provider).defaultBaseUrl].map(normalize);
+	return !trusted.includes(normalize(baseUrl));
+}
+
+function parseServiceAccount(json: string | undefined): { client_email: string; private_key: string } | null {
+	try {
+		const account = JSON.parse(json ?? 'null');
+		return typeof account?.client_email === 'string' &&
+			account.client_email.trim() &&
+			typeof account?.private_key === 'string' &&
+			account.private_key.trim()
+			? account
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function privateKeyIdentity(key: string): string {
+	try {
+		return createPrivateKey(key).export({ type: 'pkcs8', format: 'der' }).toString('base64');
+	} catch {
+		return key.trim().replace(/\r\n/g, '\n');
+	}
+}
+
+export function projectUsesDeploymentCredentialsOnCustomEndpoint(
+	provider: LlmProvider,
+	settings: ProviderSettings,
+): boolean {
+	const resourceName = providerKind(provider) === 'azure' ? settings.credentials?.resourceName : undefined;
+	const baseURL = settings.baseURL ?? (resourceName ? `https://${resourceName}.openai.azure.com/openai` : undefined);
+	const deploymentResourceUrl =
+		providerKind(provider) === 'azure' && process.env.AZURE_RESOURCE_NAME
+			? `https://${process.env.AZURE_RESOURCE_NAME}.openai.azure.com/openai`
+			: undefined;
+	if (baseURL === deploymentResourceUrl || !isProjectCustomBaseUrl(provider, baseURL)) {
+		return false;
+	}
+	const serviceAccount = parseServiceAccount(settings.credentials?.serviceAccountJson);
+	if (providerKind(provider) === 'vertex') {
+		if (!serviceAccount) {
+			return true;
+		}
+	}
+	const deploymentServiceAccount = parseServiceAccount(process.env.VERTEX_GOOGLE_SERVICE_ACCOUNT_JSON);
+	if (
+		serviceAccount &&
+		deploymentServiceAccount &&
+		privateKeyIdentity(serviceAccount.private_key) === privateKeyIdentity(deploymentServiceAccount.private_key)
+	) {
+		return true;
+	}
+	const secrets = Object.values(PROVIDER_META)
+		.flatMap((meta) => [
+			process.env[meta.envVar],
+			...(meta.auth.extraFields ?? []).filter((field) => field.secret).map((field) => process.env[field.envVar]),
+		])
+		.concat(process.env.AWS_SESSION_TOKEN, deploymentServiceAccount?.private_key)
+		.filter((value): value is string => !!value);
+	const values = [
+		providerKind(provider) === 'vertex' ? undefined : settings.apiKey,
+		baseURL,
+		...Object.values(settings.credentials ?? {}),
+		// Compare decoded secrets so JSON whitespace, order and escapes cannot hide reuse.
+		serviceAccount?.private_key,
+	];
+	// YAML interpolation may embed another provider's key or put a key inside the URL.
+	return secrets.some((secret) =>
+		values.some((value) => value?.includes(secret) || value?.includes(encodeURIComponent(secret))),
+	);
+}
+
+export function validateProjectProviderSettings(provider: LlmProvider, settings: ProviderSettings): ProviderSettings {
+	const kind = providerKind(provider);
+	const field =
+		kind === 'bedrock' ? 'region' : kind === 'vertex' ? 'location' : kind === 'azure' ? 'resourceName' : undefined;
+	const value = field ? settings.credentials?.[field] : undefined;
+	if (value && !/^[a-zA-Z0-9-]+$/.test(value)) {
+		throw new HandlerError(
+			'BAD_REQUEST',
+			`Invalid ${field} for ${provider}: use only letters, numbers and hyphens.`,
+		);
+	}
+	if (projectUsesDeploymentCredentialsOnCustomEndpoint(provider, settings)) {
+		throw new HandlerError(
+			'BAD_REQUEST',
+			`A custom base URL for ${provider} needs its own ${kind === 'vertex' ? 'inline service account credentials' : 'API key'}.`,
+		);
+	}
+	return settings;
 }
 
 /** Whether DISABLED_PROVIDERS opts this provider out, by its own id or by its kind. */
@@ -104,11 +207,11 @@ export async function resolveProviderSettings(
 	}
 	const config = await projectLlmConfigQueries.getProjectLlmConfigByProvider(projectId, provider);
 	if (config) {
-		return {
+		return validateProjectProviderSettings(provider, {
 			apiKey: config.apiKey,
 			...(config.baseUrl && { baseURL: config.baseUrl }),
 			...(config.credentials && { credentials: config.credentials }),
-		};
+		});
 	}
 
 	const configured = findConfigLlmProvider(await getProjectConfigLlm(projectId), provider);
@@ -147,11 +250,11 @@ export async function resolveProviderModel(
 	if (config) {
 		return createProviderModel(
 			provider,
-			{
+			validateProjectProviderSettings(provider, {
 				apiKey: config.apiKey,
 				...(config.baseUrl && { baseURL: config.baseUrl }),
 				...(config.credentials && { credentials: config.credentials }),
-			},
+			}),
 			modelId,
 			applyUserSettings ? config.modelSettings?.[modelId] : undefined,
 		);
@@ -199,11 +302,11 @@ function toProviderSettings(configured: ConfigLlmProvider): ProviderSettings {
 	const apiKey = configured.apiKey ?? getEnvApiKey(configured.provider) ?? '';
 	const baseURL = configured.baseUrl ?? getEnvBaseUrl(configured.provider);
 
-	return {
+	return validateProjectProviderSettings(configured.provider, {
 		apiKey,
 		...(baseURL && { baseURL }),
 		...(configured.credentials && { credentials: configured.credentials }),
-	};
+	});
 }
 
 /**
