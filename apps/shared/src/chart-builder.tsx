@@ -38,7 +38,13 @@ import {
 	shouldReserveStackTotalFootroom,
 	sumStackValue,
 } from './chart-data-labels';
-import { collectAxisValues, collectStackedAxisValues, resolveBarYAxisDomain, resolveYAxisDomain } from './chart-domain';
+import {
+	collectAxisValues,
+	collectStackedAxisValues,
+	computeNiceBarTicks,
+	resolveBarYAxisDomain,
+	resolveYAxisDomain,
+} from './chart-domain';
 import { CHART_FONT_STACK } from './chart-fonts';
 import { type ChartStyle, DEFAULT_CHART_STYLE } from './chart-style';
 import {
@@ -921,6 +927,8 @@ function buildBarChart(props: ResolvedProps) {
 	const yAxisDomain = isPercent
 		? undefined
 		: resolveBarYAxisDomain(yAxisMin, yAxisMax, axisValues, showDataLabels === true);
+	const yAxisTicks =
+		!isPercent && yAxisMin === undefined && yAxisMax === undefined ? computeNiceBarTicks(axisValues) : undefined;
 	const valueAxisValues = typeof yAxisDomain?.[1] === 'number' ? [...axisValues, yAxisDomain[1]] : axisValues;
 	const valueAxisWidth = computeValueAxisWidth(valueAxisValues, chartLevelFormat, Boolean(yAxisLabel));
 	const dataLabelsLayer = showDataLabels && !isStacked ? renderDataLabelsLayer(series) : undefined;
@@ -939,6 +947,7 @@ function buildBarChart(props: ResolvedProps) {
 					minTickGap={12}
 					tickFormatter={(value: number) => formatValueYAxisTick(value, chartLevelFormat)}
 					domain={yAxisDomain}
+					ticks={yAxisTicks}
 					allowDataOverflow={yAxisMin !== undefined || yAxisMax !== undefined}
 					label={axisLabel(yAxisLabel, 'left')}
 				/>
