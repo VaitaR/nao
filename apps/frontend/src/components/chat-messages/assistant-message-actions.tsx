@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { trpc, trpcClient } from '@/main';
 import { cn } from '@/lib/utils';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
-import { useAgentMessagesGetter } from '@/contexts/agent.provider';
+import { useAgentContext, useAgentMessagesGetter } from '@/contexts/agent.provider';
 import { getMessageMarkdown, getChatMarkdown } from '@/lib/serialize-message';
 import { downloadBase64File, downloadTextFile, toFileSlug } from '@/lib/export-chat';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,6 +39,7 @@ export function AssistantMessageActions({
 	const [exportError, setExportError] = useState<string | null>(null);
 	const { isCopied, copy } = useCopyToClipboard();
 	const getAgentMessages = useAgentMessagesGetter();
+	const agent = useAgentContext();
 	const { data: chat } = useQuery(trpc.chat.get.queryOptions({ chatId }));
 
 	const chatTitle = chat?.title ?? 'nao chat';
@@ -90,6 +91,9 @@ export function AssistantMessageActions({
 				void ctx.client.invalidateQueries({
 					queryKey: trpc.project.getProjectChats.queryKey(),
 				});
+				agent?.setMessages((messages) =>
+					messages.map((m) => (m.id === message.id ? { ...m, feedback: data } : m)),
+				);
 			},
 		}),
 	);
