@@ -1,0 +1,182 @@
+[
+	{
+		"scenario": "feedback",
+		"source": {
+			"label": "feedback-before-source",
+			"sha": "1de3864bfa36d6c58d1e42542eb5e310c77d3752"
+		},
+		"fixture": true,
+		"precondition": "Live agent message and persisted query cache start without feedback; real Good response UI is clickable.",
+		"reproduced": true,
+		"fixed": false,
+		"before": {
+			"savedVote": "none",
+			"visibleVote": "none",
+			"status": "Saved vote: none | Visible vote: none",
+			"goodClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"badClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"goodSvgPaths": 2,
+			"goodOpacity": "0.5"
+		},
+		"after": {
+			"savedVote": "up",
+			"visibleVote": "none",
+			"status": "Saved vote: up | Visible vote: none",
+			"goodClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"badClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"goodSvgPaths": 2,
+			"goodOpacity": "0.5"
+		},
+		"timestamps": {
+			"startedAt": "2026-10-05T10:44:50.559Z",
+			"endedAt": "2026-10-05T10:45:06.166Z"
+		},
+		"durationMs": 15207,
+		"timeline": {
+			"readyAt": 1.336,
+			"actionAt": 6.668,
+			"resultAt": 10.087,
+			"endedAtVideo": 15.207
+		},
+		"preconditionState": {
+			"bMessages": 2,
+			"currentId": "chat-a"
+		},
+		"evidence": [
+			"feedback-before-source-before.png",
+			"feedback-before-source-after.png",
+			"feedback-before-source.webm"
+		],
+		"browserErrors": [],
+		"blockedErrors": []
+	},
+	{
+		"scenario": "feedback",
+		"source": {
+			"label": "feedback-after-source",
+			"sha": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+		},
+		"fixture": true,
+		"precondition": "Live agent message and persisted query cache start without feedback; real Good response UI is clickable.",
+		"reproduced": false,
+		"fixed": true,
+		"before": {
+			"savedVote": "none",
+			"visibleVote": "none",
+			"status": "Saved vote: none | Visible vote: none",
+			"goodClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"badClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"goodSvgPaths": 2,
+			"goodOpacity": "0.5"
+		},
+		"after": {
+			"savedVote": "up",
+			"visibleVote": "up",
+			"status": "Saved vote: up | Visible vote: up",
+			"goodClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full text-primary",
+			"badClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+			"goodSvgPaths": 2,
+			"goodOpacity": "1"
+		},
+		"timestamps": {
+			"startedAt": "2026-10-05T10:45:08.177Z",
+			"endedAt": "2026-10-05T10:45:24.076Z"
+		},
+		"durationMs": 15156,
+		"timeline": {
+			"readyAt": 1.671,
+			"actionAt": 6.683,
+			"resultAt": 9.98,
+			"endedAtVideo": 15.156
+		},
+		"preconditionState": {
+			"bMessages": 2,
+			"currentId": "chat-a"
+		},
+		"evidence": [
+			"feedback-after-source-before.png",
+			"feedback-after-source-after.png",
+			"feedback-after-source.webm"
+		],
+		"browserErrors": [],
+		"blockedErrors": []
+	},
+	{
+		"scenario": "chat",
+		"source": {
+			"label": "chat-before-source",
+			"sha": "1de3864bfa36d6c58d1e42542eb5e310c77d3752"
+		},
+		"fixture": true,
+		"precondition": "Chat A is running with a partial answer; Chat B has two cached messages; switch creates a fresh B agent instance.",
+		"reproduced": true,
+		"fixed": false,
+		"before": {
+			"activeChat": "chat-a | running:true",
+			"agentMessages": "a-question, a-partial",
+			"cachedMessages": "a-question, a-partial"
+		},
+		"after": {
+			"activeChat": "chat-b | running:false",
+			"agentMessages": "none",
+			"cachedMessages": "none"
+		},
+		"timestamps": {
+			"startedAt": "2026-10-05T10:45:25.257Z",
+			"endedAt": "2026-10-05T10:45:39.962Z"
+		},
+		"durationMs": 14404,
+		"timeline": {
+			"readyAt": 2.974,
+			"actionAt": 8.051,
+			"resultAt": 9.291,
+			"endedAtVideo": 14.404
+		},
+		"preconditionState": {
+			"bMessages": 2,
+			"currentId": "chat-a"
+		},
+		"evidence": ["chat-before-source-before.png", "chat-before-source-after.png", "chat-before-source.webm"],
+		"browserErrors": [],
+		"blockedErrors": []
+	},
+	{
+		"scenario": "chat",
+		"source": {
+			"label": "chat-after-source",
+			"sha": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+		},
+		"fixture": true,
+		"precondition": "Chat A is running with a partial answer; Chat B has two cached messages; switch creates a fresh B agent instance.",
+		"reproduced": false,
+		"fixed": true,
+		"before": {
+			"activeChat": "chat-a | running:true",
+			"agentMessages": "a-question, a-partial",
+			"cachedMessages": "a-question, a-partial"
+		},
+		"after": {
+			"activeChat": "chat-b | running:false",
+			"agentMessages": "b-question, b-answer",
+			"cachedMessages": "b-question, b-answer"
+		},
+		"timestamps": {
+			"startedAt": "2026-10-05T10:45:41.085Z",
+			"endedAt": "2026-10-05T10:45:54.192Z"
+		},
+		"durationMs": 12727,
+		"timeline": {
+			"readyAt": 1.32,
+			"actionAt": 6.358,
+			"resultAt": 7.633,
+			"endedAtVideo": 12.727
+		},
+		"preconditionState": {
+			"bMessages": 2,
+			"currentId": "chat-a"
+		},
+		"evidence": ["chat-after-source-before.png", "chat-after-source-after.png", "chat-after-source.webm"],
+		"browserErrors": [],
+		"blockedErrors": []
+	}
+]

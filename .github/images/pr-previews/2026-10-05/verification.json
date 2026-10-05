@@ -531,8 +531,8 @@
 		},
 		{
 			"path": "after-chart.png",
-			"bytes": 11208,
-			"sha256": "159072587e43764ca60ea4f35a2d6163a463f9130c31a6312e71919a26a34773"
+			"bytes": 11173,
+			"sha256": "85e1e2950ab0be324649c2e015fdc27395ffb08b014a1d41c63825452940a591"
 		},
 		{
 			"path": "after-dropdown-after-scroll.png",
@@ -546,8 +546,8 @@
 		},
 		{
 			"path": "after-usage.png",
-			"bytes": 20318,
-			"sha256": "69d57c9c74aff2d666811105ce7c90ab37583042722e2edf40edf3af938fe149"
+			"bytes": 15789,
+			"sha256": "5f25bb4740e1f50ee71ef364880c29e4dde6a18f13e14ed37bcace7d7f366238"
 		},
 		{
 			"path": "before-alert-before.png",
@@ -556,8 +556,8 @@
 		},
 		{
 			"path": "before-chart.png",
-			"bytes": 11215,
-			"sha256": "60af61581fd38fb6bc0c0da5f7d5c6911c18d0b41fa401b2a45e03140248f165"
+			"bytes": 11190,
+			"sha256": "9e9494153d29e79cfeb7433af817153bf733b29066b7d72397034281b8df7929"
 		},
 		{
 			"path": "before-dropdown-before-after.png",
@@ -566,8 +566,8 @@
 		},
 		{
 			"path": "before-usage.png",
-			"bytes": 21209,
-			"sha256": "df7f5ea7432168a3de09464ebce8b631b10e4b305d1f0d4fc123deef5d625409"
+			"bytes": 20646,
+			"sha256": "02678765873fae15ea98a261bc7c2ed69525f6cc26a838baf0cabbb05d0c4a7e"
 		},
 		{
 			"path": "part-1-alert-scroll.ass",
@@ -638,6 +638,66 @@
 			"path": "part-3-navigation.mp4",
 			"bytes": 295896,
 			"sha256": "46b653aca4ba69419e6b934cd69c4624e2f6434f06d32a4ca62574ea9c23a1cf"
+		},
+		{
+			"path": "reproductions/chat-after-result.png",
+			"bytes": 38351,
+			"sha256": "8553b1861c1f04f52426e3abda951b7c1723073e88414795c6c167ee3869013b"
+		},
+		{
+			"path": "reproductions/chat-after.ass",
+			"bytes": 679,
+			"sha256": "4eaf337f0e67a878d55842b75cd1c11989e99f589370ee4e03357da764207616"
+		},
+		{
+			"path": "reproductions/chat-before-result.png",
+			"bytes": 35975,
+			"sha256": "2c4fc5ff192e46a047a928b5e122edc2d0207d8574b0ea1aaf89577b6911aad3"
+		},
+		{
+			"path": "reproductions/chat-before.ass",
+			"bytes": 683,
+			"sha256": "7c86d6972e76c369709e7c200792625080748376bf26f5443c66c964894f5640"
+		},
+		{
+			"path": "reproductions/chat-comparison.gif",
+			"bytes": 1227509,
+			"sha256": "112e89956084845eb2a21d389631a65267cc72312d36692e3effae4bb2237492"
+		},
+		{
+			"path": "reproductions/chat-comparison.mp4",
+			"bytes": 251751,
+			"sha256": "a600c3caaad3139a84caf15733fa0350658112c8a93c6b9d4a07b2f257d1794f"
+		},
+		{
+			"path": "reproductions/feedback-after-result.png",
+			"bytes": 34116,
+			"sha256": "8a04f4d57f23e8b22116be35ca6bcb51180078a6be03f56af58d6b5beb826026"
+		},
+		{
+			"path": "reproductions/feedback-after.ass",
+			"bytes": 655,
+			"sha256": "10156d126ec09cff8cac2ec7423a510f6aa4f119787ad77cf6ddba7051310072"
+		},
+		{
+			"path": "reproductions/feedback-before-result.png",
+			"bytes": 34149,
+			"sha256": "9e02da126fb5589c9912530566e934069772f45527c59316f6f670c9837b0e18"
+		},
+		{
+			"path": "reproductions/feedback-before.ass",
+			"bytes": 659,
+			"sha256": "8314365137d4fde529b755fd67bc89c8c54c0e2460a5df3a8ee86bc231df4996"
+		},
+		{
+			"path": "reproductions/feedback-comparison.gif",
+			"bytes": 1405697,
+			"sha256": "2561026a664636ee0983abe9bdfb0b00af9cba4a027f6a8898d51518d9c40e52"
+		},
+		{
+			"path": "reproductions/feedback-comparison.mp4",
+			"bytes": 377932,
+			"sha256": "3bdf872d06d0d8dd4c1a715a789fb1be1ab9dd9e7322a55effb633a2f8068b7f"
 		}
 	],
 	"videoPresentation": {
@@ -727,6 +787,299 @@
 						"text": "Result: History survives reload"
 					}
 				]
+			}
+		]
+	},
+	"readableChartCaptures": [
+		{
+			"scenario": "usage",
+			"phase": "before",
+			"viewport": {
+				"width": 800,
+				"height": 620
+			},
+			"labels": [
+				"Oct 1",
+				"Oct 2",
+				"Oct 3",
+				"Oct 4",
+				"Oct 5",
+				"Oct 6",
+				"Oct 7",
+				"Oct 8",
+				"Oct 9",
+				"Oct 10",
+				"Oct 11",
+				"Oct 12",
+				"Oct 13",
+				"Oct 14"
+			],
+			"errors": [],
+			"screenshot": "usage-before.png"
+		},
+		{
+			"scenario": "chart",
+			"phase": "before",
+			"viewport": {
+				"width": 800,
+				"height": 620
+			},
+			"labels": ["0", "95", "190", "285", "380"],
+			"errors": [],
+			"screenshot": "chart-before.png"
+		},
+		{
+			"scenario": "usage",
+			"phase": "after",
+			"viewport": {
+				"width": 800,
+				"height": 620
+			},
+			"labels": ["Oct 1", "Oct 4", "Oct 7", "Oct 10", "Oct 13"],
+			"errors": [],
+			"screenshot": "usage-after.png"
+		},
+		{
+			"scenario": "chart",
+			"phase": "after",
+			"viewport": {
+				"width": 800,
+				"height": 620
+			},
+			"labels": ["0", "100", "200", "300", "400"],
+			"errors": [],
+			"screenshot": "chart-after.png"
+		}
+	],
+	"bugReproductions": {
+		"ownerVerified": true,
+		"scenarios": [
+			{
+				"scenario": "feedback",
+				"fixture": true,
+				"precondition": "Live agent message and persisted query cache start without feedback; real Good response UI is clickable.",
+				"reproduced": true,
+				"fixed": true,
+				"before": {
+					"savedVote": "up",
+					"visibleVote": "none",
+					"status": "Saved vote: up | Visible vote: none",
+					"goodClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+					"badClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+					"goodSvgPaths": 2,
+					"goodOpacity": "0.5"
+				},
+				"after": {
+					"savedVote": "up",
+					"visibleVote": "up",
+					"status": "Saved vote: up | Visible vote: up",
+					"goodClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full text-primary",
+					"badClass": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full opacity-50 hover:opacity-100",
+					"goodSvgPaths": 2,
+					"goodOpacity": "1"
+				},
+				"source": {
+					"before": {
+						"label": "feedback-before-source",
+						"sha": "1de3864bfa36d6c58d1e42542eb5e310c77d3752"
+					},
+					"after": {
+						"label": "feedback-after-source",
+						"sha": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+					}
+				},
+				"timestamps": {
+					"startedAt": "2026-10-05T10:44:50.559Z",
+					"endedAt": "2026-10-05T10:45:06.166Z"
+				},
+				"durationMs": 15207,
+				"evidence": [
+					"feedback-before-source-after.png",
+					"feedback-after-source-after.png",
+					"feedback-before-source.webm",
+					"feedback-after-source.webm"
+				],
+				"browserErrors": [],
+				"blockedErrors": []
+			},
+			{
+				"scenario": "chat",
+				"fixture": true,
+				"precondition": "Chat A is running with a partial answer; Chat B has two cached messages; switch creates a fresh B agent instance.",
+				"reproduced": true,
+				"fixed": true,
+				"before": {
+					"activeChat": "chat-b | running:false",
+					"agentMessages": "none",
+					"cachedMessages": "none"
+				},
+				"after": {
+					"activeChat": "chat-b | running:false",
+					"agentMessages": "b-question, b-answer",
+					"cachedMessages": "b-question, b-answer"
+				},
+				"source": {
+					"before": {
+						"label": "chat-before-source",
+						"sha": "1de3864bfa36d6c58d1e42542eb5e310c77d3752"
+					},
+					"after": {
+						"label": "chat-after-source",
+						"sha": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+					}
+				},
+				"timestamps": {
+					"startedAt": "2026-10-05T10:45:25.257Z",
+					"endedAt": "2026-10-05T10:45:39.962Z"
+				},
+				"durationMs": 14404,
+				"evidence": [
+					"chat-before-source-after.png",
+					"chat-after-source-after.png",
+					"chat-before-source.webm",
+					"chat-after-source.webm"
+				],
+				"browserErrors": [],
+				"blockedErrors": []
+			}
+		],
+		"clips": [
+			{
+				"scenario": "feedback",
+				"mp4": "feedback-comparison.mp4",
+				"gif": "feedback-comparison.gif",
+				"durationSeconds": 27.52,
+				"steps": [
+					{
+						"at": 0,
+						"text": "BEFORE | Submit the same upvote"
+					},
+					{
+						"at": 8.85,
+						"text": "BEFORE | Saved vote: up; visible vote: none"
+					},
+					{
+						"at": 13.96,
+						"text": "AFTER | Submit the same upvote"
+					},
+					{
+						"at": 22.37,
+						"text": "AFTER | Saved vote: up; visible vote: up"
+					}
+				],
+				"captionBand": "96 pixels above the unchanged viewport",
+				"readingPauses": "5 seconds before the action and 5 seconds after the result; feedback dialog held for 2 seconds"
+			},
+			{
+				"scenario": "chat",
+				"mp4": "chat-comparison.mp4",
+				"gif": "chat-comparison.gif",
+				"durationSeconds": 23.0,
+				"steps": [
+					{
+						"at": 0,
+						"text": "BEFORE | Switch to B while A is still answering"
+					},
+					{
+						"at": 6.42,
+						"text": "BEFORE | Chat B loses its saved question and answer"
+					},
+					{
+						"at": 11.52,
+						"text": "AFTER | Switch to B while A is still answering"
+					},
+					{
+						"at": 17.93,
+						"text": "AFTER | Chat B keeps its own question and answer"
+					}
+				],
+				"captionBand": "96 pixels above the unchanged viewport",
+				"readingPauses": "5 seconds before the action and 5 seconds after the result; feedback dialog held for 2 seconds"
+			}
+		],
+		"scope": "Actual production component/hook in one shared controlled fixture. No backend, external provider or LLM requests.",
+		"owningModules": [
+			{
+				"pr": "2",
+				"path": "apps/frontend/src/components/chat-messages/assistant-message-actions.tsx",
+				"head": "a94c69e26173e15cc979e9a45b0e3c2344e5c3c7",
+				"sha256": "ee3283e5ab57cdcce653bab1f9b5c0e2cdccaf0e96b32b82624ee94b8c8ab0fb",
+				"matchesPullRequestSource": true
+			},
+			{
+				"pr": "3",
+				"path": "apps/frontend/src/hooks/use-agent.ts",
+				"head": "5a09b5a4d27946864655d31160233e1bfeb35144",
+				"sha256": "128790519c376590d2469248f87ba187b2f074dc1dfc64cd8944618c3daeb0be",
+				"matchesPullRequestSource": true
+			}
+		],
+		"captionFrameChecks": [
+			{
+				"scenario": "feedback",
+				"caption": "BEFORE | Submit the same upvote",
+				"whitePixels": 918
+			},
+			{
+				"scenario": "feedback",
+				"caption": "BEFORE | Saved vote: up; visible vote: none",
+				"whitePixels": 1130
+			},
+			{
+				"scenario": "feedback",
+				"caption": "AFTER | Submit the same upvote",
+				"whitePixels": 827
+			},
+			{
+				"scenario": "feedback",
+				"caption": "AFTER | Saved vote: up; visible vote: up",
+				"whitePixels": 962
+			},
+			{
+				"scenario": "chat",
+				"caption": "BEFORE | Switch to B while A is still answering",
+				"whitePixels": 1244
+			},
+			{
+				"scenario": "chat",
+				"caption": "BEFORE | Chat B loses its saved question and answer",
+				"whitePixels": 1356
+			},
+			{
+				"scenario": "chat",
+				"caption": "AFTER | Switch to B while A is still answering",
+				"whitePixels": 1111
+			},
+			{
+				"scenario": "chat",
+				"caption": "AFTER | Chat B keeps its own question and answer",
+				"whitePixels": 1247
+			}
+		],
+		"recordedFrameTextChecks": [
+			{
+				"scenario": "feedback",
+				"phase": "before",
+				"frameAtSeconds": 11.41,
+				"recognizedText": "BEFORE | Saved vote: up; visible vote: none\n\nReproduction fixture | Synthetic data\n\nFeedback should appear immediately\n\nSubmit an upvote. Watch the thumb and the visible vote.\n\nAssistant message\n\nSynthetic answer used for the live vote reproduction.\n\nSaved vote: up | Visible vote: none"
+			},
+			{
+				"scenario": "feedback",
+				"phase": "after",
+				"frameAtSeconds": 24.95,
+				"recognizedText": "AFTER | Saved vote: up; visible vote: up\n\nReproduction fixture | Synthetic data\n\nFeedback should appear immediately\n\nSubmit an upvote. Watch the thumb and the visible vote.\n\nAssistant message\nSynthetic answer used for the live vote reproduction.\n\no \u00ae\n\nSaved vote: up | Visible vote: up"
+			},
+			{
+				"scenario": "chat",
+				"phase": "before",
+				"frameAtSeconds": 8.97,
+				"recognizedText": "BEFORE | Chat B loses its saved question and answer\n\nReproduction fixture | Synthetic data\n\nSwitching chats must preserve history\n\nChat Ais still answering. Switch to Chat B.\n\nSwitch to Chat B\n\nChat B | Ready\n\nMessages on screen (0) Saved history (0)\n\nNo saved messages\n\nNo messages on screen"
+			},
+			{
+				"scenario": "chat",
+				"phase": "after",
+				"frameAtSeconds": 20.46,
+				"recognizedText": "AFTER | Chat B keeps its own question and answer\n\nReproduction fixture | Synthetic data\n\nSwitching chats must preserve history\n\nChat Ais still answering. Switch to Chat B.\n\nSwitch to Chat B\n\nChat B | Ready\n\nMessages on screen (2) Saved history (2)\n\nSaved question from Chat B Saved question from Chat B\n\nSaved answer from Chat B Saved answer from Chat B"
 			}
 		]
 	}
