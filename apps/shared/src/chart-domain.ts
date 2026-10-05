@@ -13,6 +13,37 @@ export function niceNumber(range: number, round: boolean): number {
 	return niceFraction * 10 ** exponent;
 }
 
+export function computeNiceBarTicks(values: number[], tickCount = 5): number[] | undefined {
+	if (
+		values.length === 0 ||
+		!Number.isInteger(tickCount) ||
+		tickCount < 2 ||
+		values.some((value) => !Number.isFinite(value) || value < 0)
+	) {
+		return undefined;
+	}
+
+	const maximum = values.reduce((max, value) => Math.max(max, value), 0);
+	if (maximum <= 0) {
+		return undefined;
+	}
+
+	const integerValues = values.every(Number.isInteger);
+	const candidateStep = niceNumber(maximum / (tickCount - 1), true);
+	const step = integerValues ? Math.max(1, Math.ceil(candidateStep)) : candidateStep;
+	if (!Number.isFinite(step) || step <= 0) {
+		return undefined;
+	}
+
+	const lastTickIndex = Math.ceil(maximum / step);
+	if (!Number.isSafeInteger(lastTickIndex) || lastTickIndex < 1) {
+		return undefined;
+	}
+
+	const ticks = Array.from({ length: lastTickIndex + 1 }, (_, index) => Number((index * step).toPrecision(12)));
+	return ticks.every(Number.isFinite) && ticks[ticks.length - 1] >= maximum ? ticks : undefined;
+}
+
 export function computeNiceDomain(dataMin: number, dataMax: number): [number, number] {
 	if (!Number.isFinite(dataMin) || !Number.isFinite(dataMax)) {
 		return [0, 1];

@@ -458,6 +458,8 @@ export interface ChartDisplayProps {
 	yAxisRightMax?: number;
 	yAxisRightLabel?: string;
 	showDataLabels?: boolean;
+	compactXAxis?: boolean;
+	maxXAxisTicks?: number;
 	animate?: boolean;
 	comparisonMode?: displayChart.ComparisonMode;
 	className?: string;
@@ -490,6 +492,8 @@ export const ChartDisplay = memo(function ChartDisplay({
 	yAxisRightMax,
 	yAxisRightLabel,
 	showDataLabels,
+	compactXAxis: compactXAxisProp,
+	maxXAxisTicks,
 	animate = false,
 	comparisonMode,
 	className,
@@ -590,7 +594,8 @@ export const ChartDisplay = memo(function ChartDisplay({
 	// Keep labels horizontal while they fit side by side (label width plus a small gap);
 	// only once they would actually collide do we shrink + rotate, and then discard.
 	const horizontalLabelPx = longestLabelLen * MAX_TICK_FONT * CHAR_WIDTH_RATIO + HORIZONTAL_LABEL_GAP;
-	const compactXAxis = !isPie && xAxisType === 'category' && xAxisWidth > 0 && perCategoryPx < horizontalLabelPx;
+	const autoCompactXAxis = !isPie && xAxisType === 'category' && xAxisWidth > 0 && perCategoryPx < horizontalLabelPx;
+	const compactXAxis = compactXAxisProp ?? autoCompactXAxis;
 
 	let xAxisTickFontSize: number | undefined;
 	let xAxisMaxLabelChars: number | undefined;
@@ -643,6 +648,7 @@ export const ChartDisplay = memo(function ChartDisplay({
 				valueFormatter,
 				compactXAxis,
 				compactXAxisInterval,
+				maxXAxisTicks,
 				xAxisTickFontSize,
 				xAxisMaxLabelChars,
 				showGrid,
@@ -707,6 +713,7 @@ export const ChartDisplay = memo(function ChartDisplay({
 			isPie,
 			compactXAxis,
 			compactXAxisInterval,
+			maxXAxisTicks,
 			xAxisTickFontSize,
 			xAxisMaxLabelChars,
 			xAxisKey,

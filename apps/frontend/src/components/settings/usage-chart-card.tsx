@@ -55,6 +55,8 @@ export function UsageChartCard({
 						chartType={chartType}
 						xAxisKey='date'
 						xAxisType='category'
+						compactXAxis={false}
+						maxXAxisTicks={6}
 						xAxisLabelFormatter={xAxisLabelFormatter}
 						valueFormatter={valueFormatter}
 						series={series}
