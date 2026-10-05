@@ -1,42 +1,80 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FeedbackDialog } from './assistant-message-actions';
+import { AssistantMessageActions } from './assistant-message-actions';
 
-vi.mock('@/main', () => ({
-	trpc: {},
+import type { UIMessage } from '@nao/backend/chat';
+
+const state = vi.hoisted(() => ({
+	agent: null as { setMessages: ReturnType<typeof vi.fn> } | null,
+	onSuccess: undefined as ((...args: unknown[]) => void) | undefined,
 }));
 
-describe('FeedbackDialog', () => {
+vi.mock('@tanstack/react-query', () => ({
+	useMutation: () => ({ mutate: vi.fn(), isPending: false }),
+	useQuery: () => ({ data: { title: 'Test chat' } }),
+}));
+
+vi.mock('@/contexts/agent.provider', () => ({
+	useAgentContext: () => state.agent,
+	useAgentMessagesGetter: () => () => [],
+}));
+
+vi.mock('@/hooks/use-copy-to-clipboard', () => ({
+	useCopyToClipboard: () => ({ isCopied: false, copy: vi.fn() }),
+}));
+
+vi.mock('@/main', () => ({
+	trpcClient: {},
+	trpc: {
+		chat: { get: { queryOptions: () => ({}), queryKey: () => ['chat', 'get'] } },
+		project: {
+			getChatReplay: { queryKey: () => ['project', 'replay'] },
+			getProjectChats: { queryKey: () => ['project', 'chats'] },
+		},
+		feedback: {
+			submit: {
+				mutationOptions: (options: { onSuccess: (...args: unknown[]) => void }) => {
+					state.onSuccess = options.onSuccess;
+					return {};
+				},
+			},
+		},
+	},
+}));
+
+const message = { id: 'message-1', role: 'assistant', parts: [] } as unknown as UIMessage;
+
+describe('feedback synchronization', () => {
+	beforeEach(() => {
+		state.agent = { setMessages: vi.fn() };
+		state.onSuccess = undefined;
+	});
+
 	afterEach(cleanup);
 
-	it('shows positive feedback wording', () => {
-		render(<FeedbackDialog open onOpenChange={vi.fn()} onSubmit={vi.fn()} isPending={false} vote='up' />);
+	it('updates the live message store as well as the persisted query cache', () => {
+		render(<AssistantMessageActions message={message} chatId='chat-1' />);
+		const vote = { vote: 'up', messageId: message.id };
+		const client = { setQueryData: vi.fn(), invalidateQueries: vi.fn() };
+		state.onSuccess!(vote, {}, undefined, { client });
 
-		expect(screen.getByText('What went well?')).toBeDefined();
-		expect(screen.getByPlaceholderText('Tell us what worked well (optional)')).toBeDefined();
+		expect(client.setQueryData).toHaveBeenCalledOnce();
+		expect(state.agent!.setMessages).toHaveBeenCalledOnce();
+		const update = state.agent!.setMessages.mock.calls[0][0] as (messages: UIMessage[]) => UIMessage[];
+		const other = { id: 'message-2', role: 'assistant', parts: [] } as unknown as UIMessage;
+		const result = update([message, other]);
+		expect(result[0]).toEqual({ ...message, feedback: vote });
+		expect(result[1]).toBe(other);
 	});
 
-	it('preserves negative feedback wording', () => {
-		render(<FeedbackDialog open onOpenChange={vi.fn()} onSubmit={vi.fn()} isPending={false} vote='down' />);
-
-		expect(screen.getByText('What went wrong?')).toBeDefined();
-		expect(screen.getByPlaceholderText('Tell us what could be better (optional)')).toBeDefined();
-	});
-
-	it('submits trimmed text or undefined when empty', () => {
-		const onSubmit = vi.fn();
-		render(<FeedbackDialog open onOpenChange={vi.fn()} onSubmit={onSubmit} isPending={false} vote='up' />);
-
-		fireEvent.change(screen.getByPlaceholderText('Tell us what worked well (optional)'), {
-			target: { value: '  Clear and useful  ' },
-		});
-		fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-		fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-
-		expect(onSubmit).toHaveBeenNthCalledWith(1, 'Clear and useful');
-		expect(onSubmit).toHaveBeenNthCalledWith(2, undefined);
+	it('still updates persisted feedback when no live agent is mounted', () => {
+		state.agent = null;
+		render(<AssistantMessageActions message={message} chatId='chat-1' />);
+		const client = { setQueryData: vi.fn(), invalidateQueries: vi.fn() };
+		expect(() => state.onSuccess!({ vote: 'down' }, {}, undefined, { client })).not.toThrow();
+		expect(client.setQueryData).toHaveBeenCalledOnce();
 	});
 });
