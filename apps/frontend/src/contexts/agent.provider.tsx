@@ -46,6 +46,7 @@ export const AgentProvider = ({ children, disableNavigation }: Props) => {
 	const value = useMemo<AgentHelpers>(
 		() => ({
 			chatId: agent.chatId,
+			agentInstanceId: agent.agentInstanceId,
 			setMessages: agent.setMessages,
 			queueOrSendMessage: agent.queueOrSendMessage,
 			editMessage: agent.editMessage,
@@ -66,6 +67,7 @@ export const AgentProvider = ({ children, disableNavigation }: Props) => {
 		}),
 		[
 			agent.chatId,
+			agent.agentInstanceId,
 			agent.setMessages,
 			agent.queueOrSendMessage,
 			agent.editMessage,
@@ -121,6 +123,7 @@ export const ReadonlyAgentMessagesProvider = ({
 	const value = useMemo<AgentHelpers>(
 		() => ({
 			chatId,
+			agentInstanceId: `readonly:${chatId ?? 'none'}`,
 			setMessages: noop,
 			queueOrSendMessage: noopPromise,
 			editMessage: noopPromise,

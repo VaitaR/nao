@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 import { usePrevRef } from './use-prev';
 import { useMemoObject } from './useMemoObject';
 import type { UseChatHelpers } from '@ai-sdk/react';
-import type { UIMessage } from '@nao/backend/chat';
+import type { UIChat, UIMessage } from '@nao/backend/chat';
 import type { ImageUploadData } from '@nao/shared/attachments';
 import type { CitationData, LlmSelectedModel } from '@nao/shared/types';
 import type { DocumentAttachment } from '@/lib/attachments';
@@ -41,6 +41,7 @@ import { messageQueueStore } from '@/stores/chat-message-queue';
 
 export interface AgentHelpers {
 	chatId: string | undefined;
+	agentInstanceId: string;
 	setMessages: UseChatHelpers<UIMessage>['setMessages'];
 	queueOrSendMessage: (args: SendMessageArgs) => Promise<void>;
 	editMessage: (
@@ -496,6 +497,7 @@ export const useAgent = ({ disableNavigation = false }: { disableNavigation?: bo
 
 	return useMemoObject({
 		chatId,
+		agentInstanceId: agentInstance.id,
 		messages,
 		setMessages,
 		queueOrSendMessage,
@@ -517,17 +519,28 @@ export const useAgent = ({ disableNavigation = false }: { disableNavigation?: bo
 	});
 };
 
+export const publishAgentMessages =
+	({ chatId, base, messages }: { chatId: string | undefined; base?: UIChat; messages: UIMessage[] }) =>
+	(prev: UIChat | undefined): UIChat | undefined => {
+		const source = prev ?? (base?.id === chatId ? base : undefined);
+		if (!source || (messages.length === 0 && source.messages.length > 0)) {
+			return prev;
+		}
+		return { ...source, messages };
+	};
+
 /** Sync the messages between the useChat hook and the query client. */
 export const useSyncMessages = ({ agent }: { agent: AgentState }) => {
 	const chatId = useChatId();
 	const chat = useChatQuery({ chatId });
 	const setChat = useSetChat();
 
+	const cachedMessages = chat.data?.messages;
 	useEffect(() => {
-		if (chat.data?.messages && !agent.isRunning) {
-			agent.setMessages(chat.data.messages);
+		if (cachedMessages && !agent.isRunning) {
+			agent.setMessages(cachedMessages);
 		}
-	}, [chat.data?.messages]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [chatId, agent.agentInstanceId, cachedMessages]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const agentMessagesRef = useRef(agent.messages);
 	agentMessagesRef.current = agent.messages;
@@ -538,23 +551,20 @@ export const useSyncMessages = ({ agent }: { agent: AgentState }) => {
 		if (!agent.isRunning) {
 			return;
 		}
-		const base = chatDataRef.current;
-		setChat({ chatId }, (prev) => {
-			const src = prev ?? base;
-			return src ? { ...src, messages: agent.messages } : prev;
-		});
+		setChat({ chatId }, publishAgentMessages({ chatId, base: chatDataRef.current, messages: agent.messages }));
 	}, [setChat, agent.messages, chatId, agent.isRunning]);
 
-	const wasRunningRef = useRef(false);
+	const prevRunRef = useRef({ chatId, isRunning: agent.isRunning });
 	useEffect(() => {
-		if (wasRunningRef.current && !agent.isRunning) {
-			const base = chatDataRef.current;
-			setChat({ chatId }, (prev) => {
-				const src = prev ?? base;
-				return src ? { ...src, messages: agentMessagesRef.current } : prev;
-			});
+		const previousRun = prevRunRef.current;
+		prevRunRef.current = { chatId, isRunning: agent.isRunning };
+		if (previousRun.chatId !== chatId || !previousRun.isRunning || agent.isRunning) {
+			return;
 		}
-		wasRunningRef.current = agent.isRunning;
+		setChat(
+			{ chatId },
+			publishAgentMessages({ chatId, base: chatDataRef.current, messages: agentMessagesRef.current }),
+		);
 	}, [agent.isRunning, setChat, chatId]);
 };
 
