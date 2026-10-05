@@ -12,10 +12,36 @@ const PROVIDER_EXECUTED_TOOLS = new Set(['web_search', 'web_fetch', 'google_sear
  * Converts a list of UI message parts to a list of database message parts.
  */
 export const mapUIPartsToDBParts = (parts: UIMessagePart[], messageId: string): NewMessagePart[] => {
-	return parts
+	const dbParts = parts
 		.map((part, index) => convertUIPartToDBPart(part, messageId, index))
 		.filter((part) => part !== undefined);
+
+	return sanitizePostgresValue(dbParts);
 };
+
+function sanitizePostgresValue<T>(value: T): T {
+	if (typeof value === 'string') {
+		return value.replace(/\0/g, '').replace(/[\uD800-\uDFFF]/gu, '\uFFFD') as T;
+	}
+	if (Array.isArray(value)) {
+		const sanitized = value.map(sanitizePostgresValue);
+		return (sanitized.some((item, index) => item !== value[index]) ? sanitized : value) as T;
+	}
+	if (value !== null && typeof value === 'object') {
+		const prototype = Object.getPrototypeOf(value);
+		if (prototype === Object.prototype || prototype === null) {
+			let changed = false;
+			const entries = Object.entries(value).map(([key, item]) => {
+				const cleanKey = sanitizePostgresValue(key);
+				const cleanItem = sanitizePostgresValue(item);
+				changed ||= cleanKey !== key || cleanItem !== item;
+				return [cleanKey, cleanItem];
+			});
+			return (changed ? Object.setPrototypeOf(Object.fromEntries(entries), prototype) : value) as T;
+		}
+	}
+	return value;
+}
 
 export const convertUIPartToDBPart = (
 	part: UIMessagePart,
