@@ -1,0 +1,623 @@
+{
+	"capturedOn": "2026-10-05",
+	"beforeCommit": "1de3864bfa36d6c58d1e42542eb5e310c77d3752",
+	"afterCommit": "d998d0786983a4a06d33f9ed658f9ad8af30a593",
+	"pullRequestHeads": {
+		"1": "432cc8b4e1ce9dbe2b159bf9ea6387ea36353929",
+		"2": "a94c69e26173e15cc979e9a45b0e3c2344e5c3c7",
+		"3": "5a09b5a4d27946864655d31160233e1bfeb35144",
+		"6": "a57de080fccb574994d5caf2eb6b078c9c75b141"
+	},
+	"ownerVerification": "Six automated browser scenarios passed. Feedback persistence and two-message histories were independently checked in the isolated SQLite database.",
+	"scenarios": [
+		{
+			"part": "#1",
+			"id": "alert-dialog",
+			"scenario": "Long actual AlertDialog at 390x560",
+			"precondition": "Actual upstream component imported from both source roots; synthetic fixture label and data are visible.",
+			"observed": {
+				"before": {
+					"before": {
+						"box": {
+							"x": 16,
+							"y": -280,
+							"width": 358,
+							"height": 1120,
+							"top": -280,
+							"right": 374,
+							"bottom": 840,
+							"left": 16
+						},
+						"overflow": {
+							"scrollHeight": 1118,
+							"clientHeight": 1118,
+							"scrollTop": 0
+						},
+						"footerBox": {
+							"x": 33,
+							"y": 743,
+							"width": 324,
+							"height": 80,
+							"top": 743,
+							"right": 357,
+							"bottom": 823,
+							"left": 33
+						},
+						"footerReachable": false
+					},
+					"after": {
+						"box": {
+							"x": 16,
+							"y": -280,
+							"width": 358,
+							"height": 1120,
+							"top": -280,
+							"right": 374,
+							"bottom": 840,
+							"left": 16
+						},
+						"overflow": {
+							"scrollHeight": 1118,
+							"clientHeight": 1118,
+							"scrollTop": 0
+						},
+						"footerBox": {
+							"x": 33,
+							"y": 743,
+							"width": 324,
+							"height": 80,
+							"top": 743,
+							"right": 357,
+							"bottom": 823,
+							"left": 33
+						},
+						"cancelBox": {
+							"x": 33,
+							"y": 787,
+							"width": 324,
+							"height": 36,
+							"top": 787,
+							"right": 357,
+							"bottom": 823,
+							"left": 33
+						},
+						"confirmBox": {
+							"x": 33,
+							"y": 743,
+							"width": 324,
+							"height": 36,
+							"top": 743,
+							"right": 357,
+							"bottom": 779,
+							"left": 33
+						},
+						"footerReachable": false
+					},
+					"browserErrors": []
+				},
+				"after": {
+					"before": {
+						"box": {
+							"x": 16,
+							"y": 16,
+							"width": 358,
+							"height": 528,
+							"top": 16,
+							"right": 374,
+							"bottom": 544,
+							"left": 16
+						},
+						"overflow": {
+							"scrollHeight": 1118,
+							"clientHeight": 526,
+							"scrollTop": 0
+						},
+						"footerBox": {
+							"x": 33,
+							"y": 1039,
+							"width": 324,
+							"height": 80,
+							"top": 1039,
+							"right": 357,
+							"bottom": 1119,
+							"left": 33
+						},
+						"footerReachable": false
+					},
+					"after": {
+						"box": {
+							"x": 16,
+							"y": 16,
+							"width": 358,
+							"height": 528,
+							"top": 16,
+							"right": 374,
+							"bottom": 544,
+							"left": 16
+						},
+						"overflow": {
+							"scrollHeight": 1118,
+							"clientHeight": 526,
+							"scrollTop": 592
+						},
+						"footerBox": {
+							"x": 33,
+							"y": 447,
+							"width": 324,
+							"height": 80,
+							"top": 447,
+							"right": 357,
+							"bottom": 527,
+							"left": 33
+						},
+						"cancelBox": {
+							"x": 33,
+							"y": 491,
+							"width": 324,
+							"height": 36,
+							"top": 491,
+							"right": 357,
+							"bottom": 527,
+							"left": 33
+						},
+						"confirmBox": {
+							"x": 33,
+							"y": 447,
+							"width": 324,
+							"height": 36,
+							"top": 447,
+							"right": 357,
+							"bottom": 483,
+							"left": 33
+						},
+						"footerReachable": true
+					},
+					"browserErrors": []
+				}
+			},
+			"comparisonVerdicts": {
+				"before": "FAIL",
+				"after": "PASS"
+			},
+			"verdict": "PASS",
+			"evidence": [
+				"before-alert-before.png",
+				"after-alert-before.png",
+				"after-alert-after.png",
+				"part-1-alert-scroll.mp4"
+			],
+			"sourceShas": {
+				"before": "1de3864bfa36d6c58d1e42542eb5e310c77d3752",
+				"after": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+			},
+			"fixture": true
+		},
+		{
+			"part": "#1",
+			"id": "dropdown-subcontent",
+			"scenario": "Actual DropdownMenuSubContent with 30 options at 800x500",
+			"precondition": "Actual upstream component imported from both source roots; synthetic fixture label and data are visible.",
+			"observed": {
+				"before": {
+					"triggerObserved": true,
+					"box": {
+						"x": 202,
+						"y": 0,
+						"width": 163.984375,
+						"height": 908,
+						"top": 0,
+						"right": 365.984375,
+						"bottom": 908,
+						"left": 202
+					},
+					"overflow": {
+						"scrollHeight": 906,
+						"clientHeight": 906,
+						"scrollTop": 0
+					},
+					"lastBefore": {
+						"x": 207,
+						"y": 875,
+						"width": 153.984375,
+						"height": 28,
+						"top": 875,
+						"right": 360.984375,
+						"bottom": 903,
+						"left": 207
+					},
+					"lastAfter": {
+						"x": 207,
+						"y": 875,
+						"width": 153.984375,
+						"height": 28,
+						"top": 875,
+						"right": 360.984375,
+						"bottom": 903,
+						"left": 207
+					},
+					"lastVisible": false,
+					"insideViewport": false,
+					"browserErrors": []
+				},
+				"after": {
+					"triggerObserved": true,
+					"box": {
+						"x": 202,
+						"y": 0,
+						"width": 163.984375,
+						"height": 500,
+						"top": 0,
+						"right": 365.984375,
+						"bottom": 500,
+						"left": 202
+					},
+					"overflow": {
+						"scrollHeight": 906,
+						"clientHeight": 498,
+						"scrollTop": 0
+					},
+					"lastBefore": {
+						"x": 207,
+						"y": 875,
+						"width": 153.984375,
+						"height": 28,
+						"top": 875,
+						"right": 360.984375,
+						"bottom": 903,
+						"left": 207
+					},
+					"lastAfter": {
+						"x": 207,
+						"y": 467,
+						"width": 153.984375,
+						"height": 28,
+						"top": 467,
+						"right": 360.984375,
+						"bottom": 495,
+						"left": 207
+					},
+					"lastVisible": true,
+					"insideViewport": true,
+					"browserErrors": []
+				}
+			},
+			"comparisonVerdicts": {
+				"before": "FAIL",
+				"after": "PASS"
+			},
+			"verdict": "PASS",
+			"evidence": [
+				"before-dropdown-before-after.png",
+				"after-dropdown-before-after.png",
+				"after-dropdown-after-scroll.png"
+			],
+			"sourceShas": {
+				"before": "1de3864bfa36d6c58d1e42542eb5e310c77d3752",
+				"after": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+			},
+			"fixture": true
+		},
+		{
+			"part": "#6",
+			"id": "chart-display-bar",
+			"scenario": "Actual ChartDisplay bar Y-axis ticks",
+			"precondition": "Actual upstream component imported from both source roots; synthetic fixture label and data are visible.",
+			"observed": {
+				"before": {
+					"yAxisTicks": ["0", "95", "190", "285", "380"],
+					"expectedTicks": ["0", "100", "200", "300", "400"],
+					"browserErrors": []
+				},
+				"after": {
+					"yAxisTicks": ["0", "100", "200", "300", "400"],
+					"expectedTicks": ["0", "100", "200", "300", "400"],
+					"browserErrors": []
+				}
+			},
+			"comparisonVerdicts": {
+				"before": "FAIL",
+				"after": "PASS"
+			},
+			"verdict": "PASS",
+			"evidence": ["before-chart.png", "after-chart.png"],
+			"sourceShas": {
+				"before": "1de3864bfa36d6c58d1e42542eb5e310c77d3752",
+				"after": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+			},
+			"fixture": true
+		},
+		{
+			"part": "#6",
+			"id": "usage-chart-card",
+			"scenario": "Actual UsageChartCard with 14 daily dates",
+			"precondition": "Actual upstream component imported from both source roots; synthetic fixture label and data are visible.",
+			"observed": {
+				"before": {
+					"beforeTicks": [
+						"Oct 1",
+						"Oct 2",
+						"Oct 3",
+						"Oct 4",
+						"Oct 5",
+						"Oct 6",
+						"Oct 7",
+						"Oct 8",
+						"Oct 9",
+						"Oct 10",
+						"Oct 11",
+						"Oct 12",
+						"Oct 13",
+						"Oct 14"
+					],
+					"afterTicks": [
+						"Oct 1",
+						"Oct 2",
+						"Oct 3",
+						"Oct 4",
+						"Oct 5",
+						"Oct 6",
+						"Oct 7",
+						"Oct 8",
+						"Oct 9",
+						"Oct 10",
+						"Oct 11",
+						"Oct 12",
+						"Oct 13",
+						"Oct 14"
+					],
+					"actualTickCount": 14,
+					"noTruncation": true,
+					"browserErrors": []
+				},
+				"after": {
+					"beforeTicks": ["Oct 1", "Oct 4", "Oct 7", "Oct 10", "Oct 13"],
+					"afterTicks": ["Oct 1", "Oct 4", "Oct 7", "Oct 10", "Oct 13"],
+					"actualTickCount": 5,
+					"noTruncation": true,
+					"browserErrors": []
+				}
+			},
+			"comparisonVerdicts": {
+				"before": "FAIL",
+				"after": "PASS"
+			},
+			"verdict": "PASS",
+			"evidence": ["before-usage.png", "after-usage.png"],
+			"sourceShas": {
+				"before": "1de3864bfa36d6c58d1e42542eb5e310c77d3752",
+				"after": "d998d0786983a4a06d33f9ed658f9ad8af30a593"
+			},
+			"fixture": true
+		},
+		{
+			"part": 2,
+			"id": "feedback-after",
+			"scenario": "idle assistant feedback submission",
+			"precondition": "Idle synthetic assistant answer; no streaming, no LLM call, local feedback mutation only.",
+			"observed": {
+				"url": "http://localhost:3048/pr-media-chat-a",
+				"question": "How many users were active?",
+				"answer": "Synthetic QA: 120 users were active.",
+				"mutation": {
+					"httpStatus": 200,
+					"vote": "up",
+					"id": "pr-media-chat-a-assistant",
+					"comment": "Synthetic QA: the answer is clear."
+				},
+				"finalButtonState": {
+					"vote": "up",
+					"selected": true,
+					"className": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer disabled:cursor-default hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-7 [&_svg:not([class*='size-'])]:size-3.5 hover:rounded-full text-primary"
+				},
+				"pageErrors": [],
+				"requestResponses": [
+					{
+						"method": "GET",
+						"path": "/api/trpc/posthog.getConfig,mcp.getServers,mcp.getConfigError,mcp.getServers,mcp.getConfigError,user.hasUsers,system.getPublicConfig",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/auth/get-session",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/trpc/branding.getPublic,project.getCurrent,organization.get,automation.list,chat.listGrouped,project.listForCurrentUser,skill.list,project.getDatabaseObjects,project.listAvailableTranscribeModels,storage.getUploadLimits,project.getAgentSettings,project.getKnownTranscribeModels,authConfig.smtp.isSetup,project.getProjectMembersByChatId,chat.get",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/trpc/project.getProjectMembersByChatId,system.checkUpdate,notification.unreadCount,automation.unreadCount,userGroup.effectiveAccess,sharedChat.getShareOptionsByChatId,chat.getForkMetadata,user.getPreferences",
+						"status": 200
+					},
+					{
+						"method": "POST",
+						"path": "/api/trpc/feedback.submit",
+						"status": 200
+					}
+				]
+			},
+			"verdict": "PASS",
+			"evidence": ["part-2-feedback-dialog.png", "part-2-feedback-final.png", "part-2-feedback.mp4"],
+			"sourceCommit": "d998d0786983a4a06d33f9ed658f9ad8af30a593",
+			"testKind": "full-app-smoke",
+			"sourceShas": {}
+		},
+		{
+			"part": 3,
+			"id": "navigation-after",
+			"scenario": "ordinary SPA sidebar chat navigation and reload",
+			"precondition": "Idle synthetic chats; ordinary navigation only, no streaming, no agent recreation or LLM call.",
+			"observed": {
+				"hops": [
+					{
+						"url": "http://localhost:3048/pr-media-chat-a",
+						"question": "How many users were active?",
+						"answer": "Synthetic QA: 120 users were active."
+					},
+					{
+						"url": "http://localhost:3048/pr-media-chat-b",
+						"question": "What was the conversion rate?",
+						"answer": "Synthetic QA: the conversion rate was 7.5%."
+					},
+					{
+						"url": "http://localhost:3048/pr-media-chat-a",
+						"question": "How many users were active?",
+						"answer": "Synthetic QA: 120 users were active."
+					}
+				],
+				"reload": {
+					"url": "http://localhost:3048/pr-media-chat-a",
+					"question": "How many users were active?",
+					"answer": "Synthetic QA: 120 users were active."
+				},
+				"pageErrors": [],
+				"requestResponses": [
+					{
+						"method": "GET",
+						"path": "/api/trpc/posthog.getConfig,mcp.getServers,mcp.getConfigError,mcp.getServers,mcp.getConfigError,user.hasUsers,system.getPublicConfig",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/auth/get-session",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/trpc/branding.getPublic,project.getCurrent,organization.get,automation.list,chat.listGrouped,project.listForCurrentUser,skill.list,project.getDatabaseObjects,project.listAvailableTranscribeModels,storage.getUploadLimits,project.getAgentSettings,project.getKnownTranscribeModels,authConfig.smtp.isSetup,project.getProjectMembersByChatId,chat.get",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/trpc/project.getProjectMembersByChatId,system.checkUpdate,notification.unreadCount,automation.unreadCount,userGroup.effectiveAccess,sharedChat.getShareOptionsByChatId,chat.getForkMetadata,user.getPreferences",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/trpc/chat.get",
+						"status": 200
+					},
+					{
+						"method": "GET",
+						"path": "/api/trpc/chat.getForkMetadata,sharedChat.getShareOptionsByChatId",
+						"status": 200
+					}
+				]
+			},
+			"verdict": "PASS",
+			"evidence": ["part-3-chat-a.png", "part-3-chat-b.png", "part-3-chat-a-reload.png", "part-3-navigation.mp4"],
+			"sourceCommit": "d998d0786983a4a06d33f9ed658f9ad8af30a593",
+			"testKind": "full-app-smoke",
+			"sourceShas": {}
+		}
+	],
+	"media": [
+		{
+			"path": "after-alert-after.png",
+			"bytes": 46208,
+			"sha256": "52e8e663b492f562c0abcef654a84bf08a50238a239356dbf26136385c322e45"
+		},
+		{
+			"path": "after-alert-before.png",
+			"bytes": 54789,
+			"sha256": "fcdfd74a4ec0b437ca5c603af19849671721323fb8cf16069bcd948263cc2e6d"
+		},
+		{
+			"path": "after-chart.png",
+			"bytes": 11208,
+			"sha256": "159072587e43764ca60ea4f35a2d6163a463f9130c31a6312e71919a26a34773"
+		},
+		{
+			"path": "after-dropdown-after-scroll.png",
+			"bytes": 47171,
+			"sha256": "893b30ac1507b07b534b0597888c14aefeaf6397c12cda357765f52027516b71"
+		},
+		{
+			"path": "after-dropdown-before-after.png",
+			"bytes": 47099,
+			"sha256": "f61929e6cba800d06d113430197e8bc3133cb8564d9ac0dc95b0696fc6bc147c"
+		},
+		{
+			"path": "after-usage.png",
+			"bytes": 20318,
+			"sha256": "69d57c9c74aff2d666811105ce7c90ab37583042722e2edf40edf3af938fe149"
+		},
+		{
+			"path": "before-alert-before.png",
+			"bytes": 58833,
+			"sha256": "a6af311b05824f3c1e9c0d01449d78e16748a3b065e0866df57338d89a8da6a3"
+		},
+		{
+			"path": "before-chart.png",
+			"bytes": 11215,
+			"sha256": "60af61581fd38fb6bc0c0da5f7d5c6911c18d0b41fa401b2a45e03140248f165"
+		},
+		{
+			"path": "before-dropdown-before-after.png",
+			"bytes": 47039,
+			"sha256": "b56b4a8a09d21fd996308d4e2d98a21c6e2368145d2c3a03fc4ac4d6eddc63d5"
+		},
+		{
+			"path": "before-usage.png",
+			"bytes": 21209,
+			"sha256": "df7f5ea7432168a3de09464ebce8b631b10e4b305d1f0d4fc123deef5d625409"
+		},
+		{
+			"path": "part-1-alert-scroll.gif",
+			"bytes": 684705,
+			"sha256": "cdcfb7b442c0add677bf994182a06b839d60a437b1419e9b814718d19aed2f25"
+		},
+		{
+			"path": "part-1-alert-scroll.mp4",
+			"bytes": 114700,
+			"sha256": "043019424fc98bd1e227af8e7750bbf0df79ae4f40af6268b3fa063bacfec971"
+		},
+		{
+			"path": "part-2-feedback-dialog.png",
+			"bytes": 14317,
+			"sha256": "01107c393806e3fe4ef95cc9203dd8dab0491453e7798a87ea315384082c45e9"
+		},
+		{
+			"path": "part-2-feedback-final.png",
+			"bytes": 57002,
+			"sha256": "12705ec57c68ca29e60173980fdaf9b3fc31a9f272ceec038958bd8bb5f1f8f7"
+		},
+		{
+			"path": "part-2-feedback.gif",
+			"bytes": 389402,
+			"sha256": "8c7c80f2f1913c80f18db072cdd69479df672cfb7cc16d77a37076b245fcceb1"
+		},
+		{
+			"path": "part-2-feedback.mp4",
+			"bytes": 107416,
+			"sha256": "2dd0e130aff3d6b55fa5389cedd93a6b527b77e70a266afaef8e98ebee57a930"
+		},
+		{
+			"path": "part-3-chat-a-reload.png",
+			"bytes": 44152,
+			"sha256": "95d5199e6c9b685036cc0744f2e62cc5cfd6b4979288ea6898e8c33926e5975b"
+		},
+		{
+			"path": "part-3-chat-a.png",
+			"bytes": 43615,
+			"sha256": "e5713ff378736cbf07265894d41ff835a032696bdf9d182b58d06943edb7b844"
+		},
+		{
+			"path": "part-3-chat-b.png",
+			"bytes": 40670,
+			"sha256": "48e08e2bb0e75e8185d9ee5aaf47929270fcb052983ce29b09872e1acb07bdbc"
+		},
+		{
+			"path": "part-3-navigation.gif",
+			"bytes": 208129,
+			"sha256": "f6200298f7e0358510657820dab78ba6d5ff87518aee7d373440f0ed4130b32d"
+		},
+		{
+			"path": "part-3-navigation.mp4",
+			"bytes": 53886,
+			"sha256": "11da8a3ef61721c9da3307c4058c5d5a30aedb4735b8a127e7275ec992a17a61"
+		}
+	]
+}
