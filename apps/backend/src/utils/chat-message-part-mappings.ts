@@ -2,6 +2,7 @@
 import { getToolName, isToolUIPart } from 'ai';
 
 import { DBMessagePart, NewMessagePart } from '../db/abstractSchema';
+import dbConfig, { Dialect } from '../db/dbConfig';
 import { UIMessagePart, UIToolPart } from '../types/chat';
 import { buildImageUrl } from './image';
 import { isStoragePath, toStorageRelativePath, toStorageVirtualPath } from './tools';
@@ -16,7 +17,7 @@ export const mapUIPartsToDBParts = (parts: UIMessagePart[], messageId: string): 
 		.map((part, index) => convertUIPartToDBPart(part, messageId, index))
 		.filter((part) => part !== undefined);
 
-	return sanitizePostgresValue(dbParts);
+	return dbConfig.dialect === Dialect.Postgres ? sanitizePostgresValue(dbParts) : dbParts;
 };
 
 function sanitizePostgresValue<T>(value: T): T {
@@ -31,8 +32,14 @@ function sanitizePostgresValue<T>(value: T): T {
 		const prototype = Object.getPrototypeOf(value);
 		if (prototype === Object.prototype || prototype === null) {
 			let changed = false;
+			const keys = new Set<string>();
 			const entries = Object.entries(value).map(([key, item]) => {
 				const cleanKey = sanitizePostgresValue(key);
+				if (keys.has(cleanKey)) {
+					// Renaming colliding keys would change the tool payload's structure.
+					throw new Error('PostgreSQL JSON keys collide after Unicode sanitization');
+				}
+				keys.add(cleanKey);
 				const cleanItem = sanitizePostgresValue(item);
 				changed ||= cleanKey !== key || cleanItem !== item;
 				return [cleanKey, cleanItem];
