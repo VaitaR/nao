@@ -297,6 +297,44 @@ describe('project LLM config overrides', () => {
 			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
 		});
 
+		it('rejects inheriting the deployment Ollama key for a custom endpoint', async () => {
+			vi.stubEnv('OLLAMA_API_KEY', 'ollama-deployment-key');
+			await expect(callUpsert('ollama', { baseUrl: 'https://gateway.example/v1' })).rejects.toMatchObject({
+				code: 'BAD_REQUEST',
+			});
+			expect(testState.upsertProjectLlmConfig).not.toHaveBeenCalled();
+		});
+
+		it.each(['settings', 'model'] as const)(
+			'rejects an Ollama YAML deployment-key fallback during %s resolution',
+			async (kind) => {
+				vi.stubEnv('OLLAMA_API_KEY', 'ollama-deployment-key');
+				writeConfig([
+					'llm:',
+					'  providers:',
+					'  - provider: ollama',
+					'    base_url: https://gateway.example/v1',
+				]);
+				await expect(
+					kind === 'settings'
+						? resolveProviderSettings('project-id', 'ollama')
+						: resolveProviderModel('project-id', 'ollama', 'llama3.2'),
+				).rejects.toThrow('needs its own API key');
+			},
+		);
+
+		it('rejects an AWS session token embedded in a custom endpoint', async () => {
+			vi.stubEnv('AWS_SESSION_TOKEN', 'deployment-session-token');
+			writeConfig([
+				'llm:',
+				'  providers:',
+				'  - provider: openai',
+				'    api_key: project-key',
+				`    base_url: https://gateway.example/{{ env('AWS_SESSION_TOKEN') }}`,
+			]);
+			await expect(resolveProviderSettings('project-id', 'openai')).rejects.toThrow('needs its own API key');
+		});
+
 		it('accepts YAML endpoints with a separate project key', async () => {
 			writeConfig([
 				'llm:',
@@ -361,7 +399,7 @@ function writeConfig(lines: string[]): void {
 }
 
 async function callUpsert(
-	provider: 'openai' | 'bedrock' | 'azure' | 'vertex',
+	provider: 'openai' | 'bedrock' | 'azure' | 'vertex' | 'ollama',
 	options: { apiKey?: string; baseUrl?: string; credentials?: Record<string, string> } = {},
 ): Promise<void> {
 	const caller = testRouter.createCaller({

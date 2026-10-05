@@ -70,9 +70,10 @@ export function projectUsesDeploymentCredentialsOnCustomEndpoint(
 			process.env[meta.envVar],
 			...(meta.auth.extraFields ?? []).filter((field) => field.secret).map((field) => process.env[field.envVar]),
 		])
+		.concat(process.env.AWS_SESSION_TOKEN)
 		.filter((value): value is string => !!value);
 	const values = [
-		getProviderMeta(provider).auth.apiKey === 'none' ? undefined : settings.apiKey,
+		providerKind(provider) === 'vertex' ? undefined : settings.apiKey,
 		baseURL,
 		...Object.values(settings.credentials ?? {}),
 	];
