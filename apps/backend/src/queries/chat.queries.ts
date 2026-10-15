@@ -502,6 +502,33 @@ export const createChat = async (
 	},
 	additionalParts: UIMessagePart[] = [],
 ): Promise<[DBChat, DBChatMessage]> => {
+	if (dbConfig.dialect === Dialect.Sqlite) {
+		return db.transaction((t) => {
+			const savedChat = t.insert(s.chat).values(newChat).returning().get()!;
+
+			const messageId = crypto.randomUUID();
+			const savedMessage = t
+				.insert(s.chatMessage)
+				.values({
+					id: messageId,
+					chatId: savedChat.id,
+					senderUserId: savedChat.userId,
+					role: 'user',
+					source: newUserMessage.source,
+					citation: newUserMessage.citation ?? null,
+					versionGroupId: messageId,
+				})
+				.returning()
+				.get()!;
+
+			const parts: UIMessagePart[] = [{ type: 'text', text: newUserMessage.text }, ...additionalParts];
+			const dbParts = mapUIPartsToDBParts(parts, savedMessage.id);
+			t.insert(s.messagePart).values(dbParts).run();
+
+			return [savedChat, savedMessage];
+		});
+	}
+
 	return db.transaction(async (t): Promise<[DBChat, DBChatMessage]> => {
 		const [savedChat] = await t.insert(s.chat).values(newChat).returning().execute();
 
@@ -529,6 +556,37 @@ export const createChat = async (
 };
 
 export const createForkedChat = async (newChat: NewChat, messages: Array<Omit<UIMessage, 'id'>>): Promise<DBChat> => {
+	if (dbConfig.dialect === Dialect.Sqlite) {
+		return db.transaction((t) => {
+			const savedChat = t.insert(s.chat).values(newChat).returning().get()!;
+
+			if (messages.length === 0) {
+				return savedChat;
+			}
+
+			const baseTime = Date.now();
+			const messageRows = messages.map((message, i) => ({
+				id: crypto.randomUUID(),
+				chatId: savedChat.id,
+				role: message.role,
+				isForked: true,
+				createdAt: new Date(baseTime + i),
+			}));
+
+			t.insert(s.chatMessage).values(messageRows).run();
+
+			const allParts = messages.flatMap((message, i) =>
+				remapToolCallIds(mapUIPartsToDBParts(message.parts, messageRows[i].id)),
+			);
+
+			if (allParts.length > 0) {
+				t.insert(s.messagePart).values(allParts).run();
+			}
+
+			return savedChat;
+		});
+	}
+
 	return db.transaction(async (t) => {
 		const [savedChat] = await t.insert(s.chat).values(newChat).returning().execute();
 
@@ -587,6 +645,71 @@ export const upsertMessage = async (
 	},
 	options: { updateMetadata?: boolean } = {},
 ): Promise<{ messageId: string }> => {
+	if (dbConfig.dialect === Dialect.Sqlite) {
+		return db.transaction((t) => {
+			const messageId = message.id ?? crypto.randomUUID();
+			const messageValues = {
+				id: messageId,
+				chatId: message.chatId,
+				senderUserId: message.senderUserId,
+				role: message.role,
+				stopReason: message.stopReason,
+				errorMessage: getErrorMessage(message.error),
+				llmProvider: message.llmProvider,
+				llmModelId: message.llmModelId,
+				source: message.source,
+				isForked: message.isForked,
+				citation: message.citation ?? null,
+				versionGroupId: message.versionGroupId ?? (message.role === 'user' ? messageId : undefined),
+				...message.tokenUsage,
+			};
+			const insert = t.insert(s.chatMessage).values(messageValues);
+			if (options.updateMetadata === false) {
+				insert.onConflictDoNothing({ target: s.chatMessage.id }).run();
+			} else {
+				const { id, versionGroupId, ...updateValues } = messageValues;
+				void id;
+				void versionGroupId;
+				insert
+					.onConflictDoUpdate({
+						target: s.chatMessage.id,
+						set: stripUndefined(updateValues),
+					})
+					.run();
+			}
+
+			t.delete(s.messagePart).where(eq(s.messagePart.messageId, messageId)).run();
+			const dbParts = mapUIPartsToDBParts(message.parts, messageId);
+			if (dbParts.length) {
+				const toolCallIds = dbParts.map((part) => part.toolCallId).filter((id): id is string => Boolean(id));
+				const existing =
+					toolCallIds.length === 0
+						? []
+						: t
+								.select({ toolCallId: s.messagePart.toolCallId })
+								.from(s.messagePart)
+								.where(
+									and(
+										inArray(s.messagePart.toolCallId, toolCallIds),
+										ne(s.messagePart.messageId, messageId),
+									),
+								)
+								.all();
+				const collidingIds = new Set(existing.map((row) => row.toolCallId));
+				const partsToInsert = dbParts.map((part) =>
+					part.toolCallId && collidingIds.has(part.toolCallId)
+						? { ...part, toolCallId: `${messageId}:${part.toolCallId}` }
+						: part,
+				);
+				t.insert(s.messagePart).values(partsToInsert).run();
+			}
+
+			t.update(s.chat).set({ updatedAt: new Date() }).where(eq(s.chat.id, message.chatId)).run();
+
+			return { messageId };
+		});
+	}
+
 	return db.transaction(async (t) => {
 		const messageId = message.id ?? crypto.randomUUID();
 		const messageValues = {
