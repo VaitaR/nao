@@ -2,6 +2,7 @@
 import { getToolName, isToolUIPart } from 'ai';
 
 import { DBMessagePart, NewMessagePart } from '../db/abstractSchema';
+import dbConfig, { Dialect } from '../db/dbConfig';
 import { UIMessagePart, UIToolPart } from '../types/chat';
 import { buildImageUrl } from './image';
 import { isStoragePath, toStorageRelativePath, toStorageVirtualPath } from './tools';
@@ -12,9 +13,11 @@ const PROVIDER_EXECUTED_TOOLS = new Set(['web_search', 'web_fetch', 'google_sear
  * Converts a list of UI message parts to a list of database message parts.
  */
 export const mapUIPartsToDBParts = (parts: UIMessagePart[], messageId: string): NewMessagePart[] => {
-	return parts
+	const dbParts = parts
 		.map((part, index) => convertUIPartToDBPart(part, messageId, index))
 		.filter((part) => part !== undefined);
+
+	return dbConfig.dialect === Dialect.Postgres ? sanitizePostgresValue(dbParts) : dbParts;
 };
 
 export const convertUIPartToDBPart = (
@@ -190,4 +193,33 @@ function extractImageIdFromUrl(url: string): string | null {
 /** A file kept in permanent storage carries its virtual `/home/…` path as its URL. */
 function extractStoragePathFromUrl(url: string): string | null {
 	return isStoragePath(url) ? toStorageRelativePath(url) || null : null;
+}
+
+/** PostgreSQL rejects NUL characters and unpaired UTF-16 surrogates in text and jsonb values. */
+function sanitizePostgresValue<T>(value: T): T {
+	if (typeof value === 'string') {
+		return value.replace(/\0/g, '').replace(/[\uD800-\uDFFF]/gu, '�') as T;
+	}
+	if (Array.isArray(value)) {
+		return value.map(sanitizePostgresValue) as T;
+	}
+	if (!isPlainObject(value)) {
+		return value;
+	}
+	const entries = Object.entries(value).map(([key, item]) => [
+		sanitizePostgresValue(key),
+		sanitizePostgresValue(item),
+	]);
+	if (new Set(entries.map(([key]) => key)).size !== entries.length) {
+		throw new Error('PostgreSQL JSON keys collide after Unicode sanitization');
+	}
+	return Object.fromEntries(entries) as T;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (value === null || typeof value !== 'object') {
+		return false;
+	}
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
 }
