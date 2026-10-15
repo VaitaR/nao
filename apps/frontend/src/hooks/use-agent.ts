@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 import { usePrevRef } from './use-prev';
 import { useMemoObject } from './useMemoObject';
 import type { UseChatHelpers } from '@ai-sdk/react';
-import type { UIMessage } from '@nao/backend/chat';
+import type { UIChat, UIMessage } from '@nao/backend/chat';
 import type { ImageUploadData } from '@nao/shared/attachments';
 import type { CitationData, LlmSelectedModel } from '@nao/shared/types';
 import type { DocumentAttachment } from '@/lib/attachments';
@@ -67,6 +67,7 @@ export interface AgentHelpers {
 }
 
 export interface AgentState extends AgentHelpers {
+	agentInstanceId: string;
 	messages: UIMessage[];
 }
 
@@ -503,6 +504,7 @@ export const useAgent = ({ disableNavigation = false }: { disableNavigation?: bo
 
 	return useMemoObject({
 		chatId,
+		agentInstanceId: agentInstance.id,
 		messages,
 		setMessages,
 		queueOrSendMessage,
@@ -535,7 +537,7 @@ export const useSyncMessages = ({ agent }: { agent: AgentState }) => {
 		if (chat.data?.messages && !agent.isRunning) {
 			agent.setMessages(chat.data.messages);
 		}
-	}, [chat.data?.messages]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [chatId, agent.agentInstanceId, chat.data?.messages]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const agentMessagesRef = useRef(agent.messages);
 	agentMessagesRef.current = agent.messages;
@@ -546,25 +548,45 @@ export const useSyncMessages = ({ agent }: { agent: AgentState }) => {
 		if (!agent.isRunning) {
 			return;
 		}
-		const base = chatDataRef.current;
-		setChat({ chatId }, (prev) => {
-			const src = prev ?? base;
-			return src ? { ...src, messages: agent.messages } : prev;
-		});
-	}, [setChat, agent.messages, chatId, agent.isRunning]);
+		setChat({ chatId }, publishAgentMessages({ chatId, base: chatDataRef.current, messages: agent.messages }));
+	}, [setChat, agent.agentInstanceId, agent.messages, chatId, agent.isRunning]);
 
-	const wasRunningRef = useRef(false);
+	const prevRunRef = useRef({ chatId, agentInstanceId: agent.agentInstanceId, isRunning: agent.isRunning });
 	useEffect(() => {
-		if (wasRunningRef.current && !agent.isRunning) {
-			const base = chatDataRef.current;
-			setChat({ chatId }, (prev) => {
-				const src = prev ?? base;
-				return src ? { ...src, messages: agentMessagesRef.current } : prev;
-			});
+		const previousRun = prevRunRef.current;
+		prevRunRef.current = { chatId, agentInstanceId: agent.agentInstanceId, isRunning: agent.isRunning };
+		if (
+			previousRun.chatId !== chatId ||
+			previousRun.agentInstanceId !== agent.agentInstanceId ||
+			!previousRun.isRunning ||
+			agent.isRunning
+		) {
+			return;
 		}
-		wasRunningRef.current = agent.isRunning;
-	}, [agent.isRunning, setChat, chatId]);
+		setChat(
+			{ chatId },
+			publishAgentMessages({ chatId, base: chatDataRef.current, messages: agentMessagesRef.current }),
+		);
+	}, [agent.agentInstanceId, agent.isRunning, setChat, chatId]);
 };
+
+function publishAgentMessages({
+	chatId,
+	base,
+	messages,
+}: {
+	chatId: string | undefined;
+	base?: UIChat;
+	messages: UIMessage[];
+}) {
+	return (prev: UIChat | undefined): UIChat | undefined => {
+		const source = prev ?? (base?.id === chatId ? base : undefined);
+		if (!source || (messages.length === 0 && source.messages.length > 0)) {
+			return prev;
+		}
+		return { ...source, messages };
+	};
+}
 
 /** What to ask when someone attaches files without typing anything. */
 function defaultAttachmentPrompt({
