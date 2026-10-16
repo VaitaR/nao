@@ -81,14 +81,10 @@ const DOC_HORIZ_PADDING = 24;
 const CHART_WIDTH = DOC_MAX_WIDTH - DOC_HORIZ_PADDING * 2;
 const CHART_HEIGHT = Math.round((CHART_WIDTH * 9) / 16);
 
-// Keep in step with `maplibre-gl` in apps/frontend/package.json. v6 ships only an ES module, so the map script
-// loads it with `import()` instead of a `<script src>` global.
 const MAPLIBRE_VERSION = '6.14.0';
 const MAPLIBRE_ESM_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.mjs`;
-// Off http(s) (`page.setContent` → about:blank for PNG/PDF renders, a downloaded story opened from file://)
-// MapLibre's cross-origin worker — a blob: module importing this URL — fails to start, and `setWorkerUrl` cannot
-// help on file:// (any URL it is given still reads as cross-origin there). The map script therefore swaps the
-// page's `Worker` for one that starts a data: module importing this URL; MapLibre is the page's only worker.
+// Off http(s) (about:blank PNG/PDF renders, file:// downloads) MapLibre's blob: worker cannot start and
+// `setWorkerUrl` cannot fix file://, so the map script replaces `Worker` with a data: module importing this URL.
 const MAPLIBRE_WORKER_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl-worker.mjs`;
 export const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
 export const MAP_STYLE_URL = process.env.NAO_STORY_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron';

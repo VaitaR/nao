@@ -7,7 +7,6 @@ import { generateStoryHtml } from '../src/utils/story-html';
 
 const MAP_BLOCK = '<map query_id="q1" map_type="scatter" latitude_key="lat" longitude_key="lng" />';
 
-// The story's CDN copy must not drift from the bundled frontend dependency, or a security bump lands in one only.
 const installedVersion: string = JSON.parse(
 	readFileSync(createRequire(import.meta.url).resolve('maplibre-gl/package.json'), 'utf8'),
 ).version;
