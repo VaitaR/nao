@@ -2,6 +2,7 @@ import type { LlmProvider } from '@nao/shared/types';
 import { and, eq, isNotNull, or, SQL, sql, SQLWrapper, sum } from 'drizzle-orm';
 
 import { LLM_PROVIDERS } from '../agents/providers';
+import { getTranscribeModelCosts, TRANSCRIBE_PROVIDERS } from '../agents/transcribe.providers';
 import s from '../db/abstractSchema';
 import { db } from '../db/db';
 import dbConfig, { Dialect } from '../db/dbConfig';
@@ -581,6 +582,12 @@ async function getCostLookupTuples(projectId: string): Promise<CostLookupTuple[]
 	for (const [provider, config] of Object.entries(LLM_PROVIDERS)) {
 		for (const model of config.models) {
 			costs.set(`${provider}\u0000${model.id}`, { ...model.costPerM });
+		}
+	}
+
+	for (const [provider, config] of Object.entries(TRANSCRIBE_PROVIDERS)) {
+		for (const model of config.models) {
+			costs.set(`${provider}\u0000${model.id}`, getTranscribeModelCosts(model));
 		}
 	}
 

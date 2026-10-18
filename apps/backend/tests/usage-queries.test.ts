@@ -401,4 +401,38 @@ describe('usage query results', () => {
 
 		expect(today?.users).toEqual([{ userName: 'Usage User', messageCount: 1, totalTokens: 0, totalCost: 0 }]);
 	});
+
+	it('prices transcription inferences: token models per 1M tokens, whisper per audio second', async () => {
+		const now = new Date();
+		await db.insert(s.llmInference).values([
+			{
+				id: 'transcription-mini',
+				projectId: PROJECT_ID,
+				userId: USER_ID,
+				type: 'transcription',
+				llmProvider: 'openai',
+				llmModelId: 'gpt-4o-mini-transcribe',
+				inputNoCacheTokens: 2_000_000,
+				outputTotalTokens: 1_000_000,
+				createdAt: now,
+			},
+			{
+				id: 'transcription-whisper',
+				projectId: PROJECT_ID,
+				userId: USER_ID,
+				type: 'transcription',
+				llmProvider: 'openai',
+				llmModelId: 'whisper-1',
+				inputNoCacheTokens: 600,
+				createdAt: now,
+			},
+		]);
+
+		const records = await getMessagesUsage(PROJECT_ID, { period: { value: 15, unit: 'day' } });
+		const today = records.find((item) => item.date === formatDate(now, 'day'));
+
+		// mini: $1.25 in / $5 out per 1M; whisper-1: $0.006/min => 600 s = $0.06.
+		expect(today?.inputNoCacheCost).toBeCloseTo(2 * 1.25 + 0.06, 9);
+		expect(today?.outputCost).toBeCloseTo(5, 9);
+	});
 });
