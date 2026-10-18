@@ -59,6 +59,14 @@ import {
 	type SlackTableRenderState,
 	type TruncationNotice,
 } from '../utils/messaging-provider';
+import {
+	collectSlackAudioFiles,
+	formatSlackAudioFailures,
+	getSlackFileUrl,
+	MAX_SLACK_AUDIO_BYTES,
+	SlackFileLoadError,
+	type SlackRawFile,
+} from '../utils/slack-message-content';
 import { shouldReplyToSlackThreadMessage } from '../utils/slack-reply-policy';
 import { isStoriesPath } from '../utils/story-mount';
 import { toStorageRelativePath } from '../utils/tools';
@@ -69,6 +77,7 @@ import { assertProjectCloudBillingAccess } from './cloud-billing-access.service'
 import { SlackSocketBridge } from './slack-socket-bridge';
 import { readUserFileBytes } from './storage/user-files';
 import { ensureMessagingProviderUser } from './team-member';
+import * as transcribeService from './transcribe.service';
 
 const UPDATE_INTERVAL_MS = 200;
 
@@ -1059,7 +1068,9 @@ export class ProjectSlackBot {
 	}
 
 	private async _saveOrUpdateUserMessage(ctx: ConversationContext, fetchUnseenMessages: boolean): Promise<void> {
-		const text = ctx.userMessage.text;
+		const { transcripts, audioFailures } = await this._transcribeAudioFiles(ctx);
+		const userText = [ctx.userMessage.text.trim(), ...transcripts].filter(Boolean).join('\n\n');
+		const text = [userText, formatSlackAudioFailures(audioFailures)].filter(Boolean).join('\n\n');
 		const unseenMessages = fetchUnseenMessages
 			? await this._getUnseenSlackMessages(ctx.thread.id, ctx.userMessage.id)
 			: null;
@@ -1081,13 +1092,89 @@ export class ProjectSlackBot {
 			return;
 		}
 
-		const title = createChatTitle({ text });
+		const title = createChatTitle({ text: userText });
 		const [createdChat] = await chatQueries.createChat(
 			{ title, userId: ctx.user!.id, projectId: this.projectId, slackThreadId: ctx.thread.id },
 			{ text: messageText, source: 'slack' },
 		);
 		ctx.chatId = createdChat.id;
 		ctx.isNewChat = true;
+	}
+
+	/**
+	 * A voice clip arrives with empty `text`, so without a transcript the model gets an empty turn.
+	 * A failed clip is reported to the model with its reason instead of dropping the turn.
+	 */
+	private async _transcribeAudioFiles(
+		ctx: ConversationContext,
+	): Promise<{ transcripts: string[]; audioFailures: SlackFileLoadError[] }> {
+		const files = collectSlackAudioFiles(ctx.userMessage.raw);
+		if (files.length === 0) {
+			return { transcripts: [], audioFailures: [] };
+		}
+
+		const agentSettings = await projectQueries.getAgentSettings(this.projectId);
+		if (!agentSettings?.transcribe?.enabled) {
+			return {
+				transcripts: [],
+				audioFailures: files.map(() => new SlackFileLoadError('transcription_disabled')),
+			};
+		}
+
+		const transcripts: string[] = [];
+		const audioFailures: SlackFileLoadError[] = [];
+		for (const file of files) {
+			try {
+				const audio = await this._downloadSlackFile(file, MAX_SLACK_AUDIO_BYTES);
+				transcripts.push(await this._transcribeSlackAudio(audio));
+			} catch (error) {
+				audioFailures.push(
+					error instanceof SlackFileLoadError ? error : new SlackFileLoadError('download_failed'),
+				);
+				logger.warn(`Failed to transcribe Slack audio attachment: ${String(error)}`, {
+					source: 'system',
+					context: { projectId: this.projectId, fileId: file.id, mimeType: file.mimetype },
+				});
+			}
+		}
+		return { transcripts, audioFailures };
+	}
+
+	private async _transcribeSlackAudio(audio: Buffer): Promise<string> {
+		let transcript: string;
+		try {
+			transcript = (await transcribeService.transcribeAudio(this.projectId, audio.toString('base64'))).trim();
+		} catch (error) {
+			throw new SlackFileLoadError('transcription_failed', error instanceof Error ? error.message : undefined);
+		}
+		if (!transcript) {
+			throw new SlackFileLoadError('empty_transcript');
+		}
+		return transcript;
+	}
+
+	private async _downloadSlackFile(file: SlackRawFile, maxBytes: number): Promise<Buffer> {
+		if (file.size && file.size > maxBytes) {
+			throw new SlackFileLoadError('too_large');
+		}
+
+		const response = await fetch(getSlackFileUrl(file)!, {
+			headers: { Authorization: `Bearer ${this._config.botToken}` },
+		});
+		if (!response.ok) {
+			throw new SlackFileLoadError('download_failed', `HTTP ${response.status}`);
+		}
+		if ((response.headers.get('content-type') ?? '').includes('text/html')) {
+			throw new SlackFileLoadError(
+				'missing_files_read_scope',
+				'Slack returned an HTML page instead of the file; the app likely lacks the files:read scope',
+			);
+		}
+		const buffer = Buffer.from(await response.arrayBuffer());
+		if (buffer.byteLength > maxBytes) {
+			throw new SlackFileLoadError('too_large');
+		}
+		return buffer;
 	}
 
 	private async _getUnseenSlackMessages(threadId: string, currentMessageId: string): Promise<string | null> {
