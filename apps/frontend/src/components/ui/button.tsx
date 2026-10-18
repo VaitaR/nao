@@ -1,7 +1,7 @@
 import { Slot } from '@radix-ui/react-slot';
 import { cva } from 'class-variance-authority';
 import * as React from 'react';
-import { ArrowUpIcon, Loader2, Mic, SquareIcon } from 'lucide-react';
+import { ArrowUpIcon, Check, Loader2, Mic, SquareIcon } from 'lucide-react';
 import type { VariantProps } from 'class-variance-authority';
 
 import { LastUsedPill } from '@/components/ui/last-used-pill';
@@ -132,14 +132,21 @@ function MicButton({
 			type='button'
 			onClick={onClick}
 			disabled={disabled || isTranscribing}
-			aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+			aria-label={isRecording ? 'Finish recording' : isTranscribing ? 'Transcribing' : 'Start voice input'}
+			title={isRecording ? 'Finish recording (Enter)' : isTranscribing ? 'Transcribing…' : 'Voice input'}
 			className={`
 				inline-flex items-center justify-center rounded-full size-7 transition-all cursor-pointer
 				disabled:pointer-events-none disabled:opacity-50
 				${isRecording ? 'bg-violet/30 animate-pulse' : 'text-foreground hover:text-foreground hover:bg-accent'}
 			`}
 		>
-			{isTranscribing ? <Loader2 className='size-3.5 animate-spin' /> : <Mic className='size-3.5' />}
+			{isTranscribing ? (
+				<Loader2 className='size-3.5 animate-spin' />
+			) : isRecording ? (
+				<Check className='size-3.5' />
+			) : (
+				<Mic className='size-3.5' />
+			)}
 		</button>
 	);
 }

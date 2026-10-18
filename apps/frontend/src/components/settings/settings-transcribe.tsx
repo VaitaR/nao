@@ -47,6 +47,14 @@ export function SettingsTranscribe({ isAdmin }: SettingsTranscribeProps) {
 		});
 	};
 
+	const isAutoSend = agentSettings.data?.transcribe?.autoSend ?? false;
+
+	const handleAutoSendToggle = (autoSend: boolean) => {
+		updateAgentSettings.mutate({
+			transcribe: { autoSend },
+		});
+	};
+
 	const handleProviderChange = (provider: string) => {
 		const config = knownModels.data?.[provider];
 		const models = config?.models ?? [];
@@ -129,6 +137,27 @@ export function SettingsTranscribe({ isAdmin }: SettingsTranscribeProps) {
 										))}
 									</SelectContent>
 								</Select>
+							</div>
+
+							<div className='flex items-start justify-between gap-4'>
+								<div className='grid gap-1'>
+									<label
+										htmlFor='transcribe-auto-send'
+										className='text-sm font-medium text-foreground'
+									>
+										Send immediately after transcription
+									</label>
+									<p className='text-xs text-muted-foreground'>
+										When off, the transcript is inserted into the message box so it can be reviewed
+										before sending.
+									</p>
+								</div>
+								<Switch
+									id='transcribe-auto-send'
+									checked={isAutoSend}
+									onCheckedChange={handleAutoSendToggle}
+									disabled={!isAdmin || isMutating}
+								/>
 							</div>
 
 							<div className='space-y-2'>

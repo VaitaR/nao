@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useId } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, PencilRuler, Database, Paperclip, AlertTriangle, Shield, Check } from 'lucide-react';
+import { Plus, PencilRuler, Database, Paperclip, AlertTriangle, Shield, Check, X } from 'lucide-react';
 import { ATTACHMENT_ACCEPT } from '@nao/shared/attachments';
 import { Button, ChatButton, MicButton } from './ui/button';
 import { SlidingWaveform } from './chat-input-sliding-waveform';
@@ -19,6 +19,7 @@ import {
 import type { MentionOption, PromptHandle, SelectedMention } from 'prompt-mentions';
 import type { FormEvent } from 'react';
 import type { AgentHelpers } from '@/hooks/use-agent';
+import type { VoiceInputError } from '@/hooks/use-transcribe';
 import { ContextWindowRing } from '@/components/ui/chat-input-context-window-ring';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 
@@ -26,7 +27,7 @@ import { InputGroup, InputGroupAddon } from '@/components/ui/input-group';
 import { trpc } from '@/main';
 import { useAgentContext, useAgentMessagesSelector } from '@/contexts/agent.provider';
 import { useRegisterSetChatInputCallback } from '@/contexts/set-chat-input-callback';
-import { useTranscribe } from '@/hooks/use-transcribe';
+import { MAX_RECORDING_SECONDS, useTranscribe } from '@/hooks/use-transcribe';
 import { useAttachmentUpload } from '@/hooks/use-attachment-upload';
 import { parseBudgetError } from '@/lib/ai';
 import { cn } from '@/lib/utils';
@@ -146,6 +147,7 @@ function ChatInputBase({
 	const isTranscribeEnabled = agentSettings.data?.transcribe?.enabled ?? false;
 	const hasTranscribeProvider = Object.values(transcribeModels.data ?? {}).some((p) => p.hasKey);
 	const isTranscribeReady = isTranscribeEnabled && hasTranscribeProvider;
+	const transcribeAutoSend = agentSettings.data?.transcribe?.autoSend ?? false;
 
 	const budgetStatus = useQuery({
 		...trpc.budget.checkBudgetStatus.queryOptions({ provider: selectedModel?.provider ?? 'openai' }),
@@ -333,13 +335,41 @@ function ChatInputBase({
 		],
 	);
 
+	const handleTranscribed = useCallback(
+		(text: string) => {
+			if (transcribeAutoSend) {
+				const draft = inputText.trim();
+				void submitMessage(draft ? `${draft} ${text}` : text, promptRef.current?.getMentions() ?? []);
+				return;
+			}
+			// Not focused while recording, so `insertText` appends at the end of the draft.
+			const needsSpace = inputText.length > 0 && !/\s$/.test(inputText);
+			promptRef.current?.insertText(needsSpace ? ` ${text}` : text);
+			promptRef.current?.focus();
+		},
+		[transcribeAutoSend, inputText, submitMessage, promptRef],
+	);
+
 	const {
 		state: transcribeState,
 		toggle: toggleRecording,
+		cancel: cancelRecording,
+		retry: retryTranscription,
+		error: voiceInputError,
+		dismissError: dismissVoiceInputError,
 		isRecording,
 		isTranscribing,
 		analyserRef,
-	} = useTranscribe({ onTranscribed: submitMessage });
+	} = useTranscribe({ onTranscribed: handleTranscribed });
+
+	// A failed transcription stays up: dismissing it is what discards the recording kept for Retry.
+	useEffect(() => {
+		if (!voiceInputError || voiceInputError === 'transcription-failed') {
+			return;
+		}
+		const id = window.setTimeout(dismissVoiceInputError, VOICE_INPUT_ERROR_DISMISS_MS);
+		return () => window.clearTimeout(id);
+	}, [voiceInputError, dismissVoiceInputError]);
 
 	useEffect(() => {
 		if (typeof initialText !== 'string') {
@@ -469,14 +499,41 @@ function ChatInputBase({
 
 							<ContextWindowRing />
 
-							{isTranscribeReady && isRecording && <RecordingTimer />}
+							{isTranscribeReady && isRecording && (
+								<>
+									<RecordingTimer maxSeconds={MAX_RECORDING_SECONDS} />
+									<button
+										type='button'
+										onClick={cancelRecording}
+										aria-label='Cancel recording'
+										title='Cancel recording (Esc)'
+										className='inline-flex items-center justify-center rounded-full size-7 text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer'
+									>
+										<X className='size-3.5' />
+									</button>
+								</>
+							)}
 							<MicButton
 								state={isTranscribeReady ? transcribeState : 'idle'}
 								onClick={isTranscribeReady ? toggleRecording : showMicWarning}
-								disabled={isRunning && !allowQueueing}
+								disabled={transcribeAutoSend && isRunning && !allowQueueing}
 							/>
 							{micWarning && (
-								<MicWarningBanner isAdmin={isAdmin} onDismiss={() => setMicWarning(false)} />
+								<VoiceInputNotice onDismiss={() => setMicWarning(false)}>
+									<MicNotConfiguredMessage isAdmin={isAdmin} />
+								</VoiceInputNotice>
+							)}
+							{!micWarning && voiceInputError && (
+								<VoiceInputNotice
+									onDismiss={dismissVoiceInputError}
+									action={
+										voiceInputError === 'transcription-failed'
+											? { label: 'Retry', onClick: retryTranscription }
+											: undefined
+									}
+								>
+									{VOICE_INPUT_ERROR_MESSAGES[voiceInputError]}
+								</VoiceInputNotice>
 							)}
 
 							{allowQueueing && isRunning ? (
@@ -756,7 +813,9 @@ function ChatInputPlusMenu({
 	);
 }
 
-function RecordingTimer() {
+const RECORDING_LIMIT_WARNING_SECONDS = 30;
+
+function RecordingTimer({ maxSeconds }: { maxSeconds: number }) {
 	const [elapsed, setElapsed] = useState(0);
 
 	useEffect(() => {
@@ -764,43 +823,82 @@ function RecordingTimer() {
 		return () => clearInterval(id);
 	}, []);
 
-	const mins = Math.floor(elapsed / 60);
-	const secs = elapsed % 60;
+	const remaining = Math.max(maxSeconds - elapsed, 0);
+	const nearLimit = remaining <= RECORDING_LIMIT_WARNING_SECONDS;
+	const shown = nearLimit ? remaining : elapsed;
+	const mins = Math.floor(shown / 60);
+	const secs = shown % 60;
 
 	return (
-		<span className='text-xs tabular-nums text-muted-foreground'>
+		<span
+			className={cn('text-xs tabular-nums', nearLimit ? 'text-amber-500' : 'text-muted-foreground')}
+			title={nearLimit ? 'Recording stops automatically at the limit' : 'Enter to finish, Esc to cancel'}
+		>
+			{nearLimit && '\u2212'}
 			{mins}:{secs.toString().padStart(2, '0')}
 		</span>
 	);
 }
 
-function MicWarningBanner({ isAdmin, onDismiss }: { isAdmin: boolean; onDismiss: () => void }) {
+const VOICE_INPUT_ERROR_DISMISS_MS = 8000;
+
+const VOICE_INPUT_ERROR_MESSAGES: Record<VoiceInputError, string> = {
+	unsupported: 'Voice input needs a secure (HTTPS) page and a browser that can record audio.',
+	'permission-denied': 'Microphone access is blocked. Allow it in the browser\u2019s site settings and try again.',
+	'no-microphone': 'No microphone was found.',
+	'microphone-unavailable': 'The microphone could not be started. It may be in use by another app.',
+	'transcription-failed':
+		'The recording could not be transcribed. Your audio is kept \u2014 retry, or dismiss to discard it.',
+	'nothing-recognized': 'No speech was recognized in the recording.',
+};
+
+function VoiceInputNotice({
+	children,
+	onDismiss,
+	action,
+}: {
+	children: React.ReactNode;
+	onDismiss: () => void;
+	action?: { label: string; onClick: () => void };
+}) {
 	return (
-		<div className='absolute bottom-full right-0 mb-2 w-64 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in slide-in-from-bottom-2 duration-200'>
+		<div
+			role='status'
+			className='absolute bottom-full right-0 mb-2 w-64 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in slide-in-from-bottom-2 duration-200'
+		>
 			<button
 				type='button'
 				onClick={onDismiss}
+				aria-label='Dismiss'
 				className='absolute top-1 right-1.5 text-muted-foreground hover:text-foreground text-xs cursor-pointer'
 			>
 				&times;
 			</button>
-			{isAdmin ? (
-				<p className='text-sm'>
-					Voice input is not configured.{' '}
-					<Link
-						to='/settings/project/agent'
-						search={{ tab: 'models' }}
-						className='font-medium text-primary underline underline-offset-2 hover:text-primary/80'
-					>
-						Go to Settings &rarr; Agent &rarr; Models
-					</Link>{' '}
-					to turn on Transcription and set up a provider key.
-				</p>
-			) : (
-				<p className='text-sm'>
-					Voice input is not enabled for this project. Ask a project admin to turn on Transcription.
-				</p>
+			<p className='text-sm pr-3'>{children}</p>
+			{action && (
+				<Button type='button' size='sm' variant='outline' className='mt-2' onClick={action.onClick}>
+					{action.label}
+				</Button>
 			)}
 		</div>
+	);
+}
+
+function MicNotConfiguredMessage({ isAdmin }: { isAdmin: boolean }) {
+	if (!isAdmin) {
+		return <>Voice input is not enabled for this project. Ask a project admin to turn on Transcription.</>;
+	}
+	return (
+		<>
+			Voice input is not configured.{' '}
+			<Link
+				to='/settings/project/agent'
+				search={{ tab: 'models' }}
+				className='font-medium text-primary underline underline-offset-2 hover:text-primary/80'
+			>
+				Go to Settings &rarr; Agent &rarr; Models
+			</Link>{' '}
+			to turn on Transcription and set up a provider key.
+		</>
 	);
 }

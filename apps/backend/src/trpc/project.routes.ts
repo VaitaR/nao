@@ -1042,6 +1042,7 @@ export const projectRoutes = {
 						enabled: z.boolean().optional(),
 						provider: z.string().optional(),
 						modelId: z.string().optional(),
+						autoSend: z.boolean().optional(),
 					})
 					.optional(),
 				sql: z

@@ -13,6 +13,8 @@ export interface AgentSettings {
 		enabled?: boolean;
 		provider?: string;
 		modelId?: string;
+		/** Send the transcript as a message right away instead of inserting it into the input. */
+		autoSend?: boolean;
 	};
 	sql?: {
 		dangerouslyWritePermEnabled?: boolean;
