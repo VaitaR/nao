@@ -24,7 +24,7 @@ export async function transcribeAudio(
 
 	const { apiKey, baseURL } = await resolveProviderSettings(projectId, provider);
 	if (!apiKey) {
-		throw new Error(`No API key configured for ${provider}. Add one in Settings > Models.`);
+		throw new Error(`No API key configured for ${provider}. Add one in Settings > Agent > Models.`);
 	}
 
 	const model = createTranscribeModel(provider, { apiKey, baseURL }, modelId);

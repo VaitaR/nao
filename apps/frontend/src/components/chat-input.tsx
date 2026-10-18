@@ -114,7 +114,7 @@ function ChatInputBase({
 		selectedModel,
 	} = useAgentContext();
 	const navigate = useNavigate();
-	const { canChatWithNaoData } = usePermissions();
+	const { canChatWithNaoData, isAdmin } = usePermissions();
 	const { storyCreationEnabled } = useEffectiveUserGroupFeatures();
 	const storyMentionOptions = useStoryMentionOptions(storyCreationEnabled);
 	const chatId = useChatId();
@@ -475,7 +475,9 @@ function ChatInputBase({
 								onClick={isTranscribeReady ? toggleRecording : showMicWarning}
 								disabled={isRunning && !allowQueueing}
 							/>
-							{micWarning && <MicWarningBanner onDismiss={() => setMicWarning(false)} />}
+							{micWarning && (
+								<MicWarningBanner isAdmin={isAdmin} onDismiss={() => setMicWarning(false)} />
+							)}
 
 							{allowQueueing && isRunning ? (
 								<ChatButton
@@ -772,7 +774,7 @@ function RecordingTimer() {
 	);
 }
 
-function MicWarningBanner({ onDismiss }: { onDismiss: () => void }) {
+function MicWarningBanner({ isAdmin, onDismiss }: { isAdmin: boolean; onDismiss: () => void }) {
 	return (
 		<div className='absolute bottom-full right-0 mb-2 w-64 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in slide-in-from-bottom-2 duration-200'>
 			<button
@@ -782,16 +784,23 @@ function MicWarningBanner({ onDismiss }: { onDismiss: () => void }) {
 			>
 				&times;
 			</button>
-			<p className='text-sm'>
-				Voice input is not configured.{' '}
-				<Link
-					to='/settings/project/models'
-					className='font-medium text-primary underline underline-offset-2 hover:text-primary/80'
-				>
-					Go to Settings &rarr; Models
-				</Link>{' '}
-				to enable transcription and set up a provider. Ask your admin.
-			</p>
+			{isAdmin ? (
+				<p className='text-sm'>
+					Voice input is not configured.{' '}
+					<Link
+						to='/settings/project/agent'
+						search={{ tab: 'models' }}
+						className='font-medium text-primary underline underline-offset-2 hover:text-primary/80'
+					>
+						Go to Settings &rarr; Agent &rarr; Models
+					</Link>{' '}
+					to turn on Transcription and set up a provider key.
+				</p>
+			) : (
+				<p className='text-sm'>
+					Voice input is not enabled for this project. Ask a project admin to turn on Transcription.
+				</p>
+			)}
 		</div>
 	);
 }

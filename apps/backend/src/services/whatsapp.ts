@@ -348,7 +348,7 @@ class WhatsappService {
 		const agentSettings = await projectQueries.getAgentSettings(this._projectId);
 		if (!agentSettings?.transcribe?.enabled) {
 			await ctx.thread.post(
-				'❌ Voice note transcription is not enabled for this project. Ask an admin to enable it in Settings > Models.',
+				'❌ Voice note transcription is not enabled for this project. Ask an admin to enable it in Settings > Agent > Models.',
 			);
 			throw new Error('Voice note transcription is disabled');
 		}
