@@ -21,6 +21,7 @@ import { UIChat, UIMessage, UIMessagePart } from '../types/chat';
 import { ConversationContext, StreamState, ToolCallEntry } from '../types/messaging-provider';
 import { createChatTitle } from '../utils/ai';
 import { logger } from '../utils/logger';
+import { plainTextWithLinks } from '../utils/message-plain-text';
 import {
 	createCompletionCard,
 	createImageBlock,
@@ -149,7 +150,9 @@ class TeamsService {
 	}
 
 	private async _handleWorkFlow(thread: Thread, userMessage: Message, config: TeamsConfig): Promise<void> {
-		userMessage.text = userMessage.text.replace(/(?:<at>[^<]*<\/at>|@\S+)\s*/g, '').trim();
+		userMessage.text = plainTextWithLinks(userMessage.formatted)
+			.replace(/(?:<at>[^<]*<\/at>|@\S+)\s*/g, '')
+			.trim();
 
 		const ctx: TeamsConversationContext = {
 			thread,

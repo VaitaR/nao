@@ -1,3 +1,4 @@
+import { parseMarkdown } from 'chat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SlackConfig } from '../src/queries/project-slack-config.queries';
@@ -76,6 +77,7 @@ describe('ProjectSlackBot answering status', () => {
 		} as unknown as ConversationContext['thread'];
 		const userMessage = {
 			text: 'question',
+			formatted: parseMarkdown('question'),
 			author: { userId: 'slack-user' },
 		} as ConversationContext['userMessage'];
 

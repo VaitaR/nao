@@ -35,6 +35,7 @@ import { createChatTitle } from '../utils/ai';
 import { buildUserAddedEmail } from '../utils/email-builders';
 import { claimOnce } from '../utils/keyed-lock';
 import { logger } from '../utils/logger';
+import { plainTextWithLinks } from '../utils/message-plain-text';
 import {
 	buildSlackCardNotificationText,
 	buildSlackTableBlocks,
@@ -60,6 +61,7 @@ import {
 	type SlackTableRenderState,
 	type TruncationNotice,
 } from '../utils/messaging-provider';
+import { expandSlackMrkdwnLinks } from '../utils/slack-message-text';
 import { shouldReplyToSlackThreadMessage } from '../utils/slack-reply-policy';
 import { isStoriesPath } from '../utils/story-mount';
 import { toStorageRelativePath } from '../utils/tools';
@@ -599,7 +601,7 @@ export class ProjectSlackBot {
 		if (!(await this._claimMessage(thread, userMessage))) {
 			return;
 		}
-		userMessage.text = userMessage.text.replace(SLACK_MENTION_REGEX, '').trim();
+		userMessage.text = plainTextWithLinks(userMessage.formatted).replace(SLACK_MENTION_REGEX, '').trim();
 
 		const ctx: ConversationContext = {
 			thread,
@@ -1172,7 +1174,9 @@ export class ProjectSlackBot {
 		return messages
 			.map((msg) => {
 				const name = msg.user ? userNames.get(msg.user) || msg.user : 'Unknown';
-				const text = (msg.text || '').replace(SLACK_MENTION_REGEX, '').trim();
+				const text = expandSlackMrkdwnLinks(msg.text || '')
+					.replace(SLACK_MENTION_REGEX, '')
+					.trim();
 				return `${name}: ${text}`;
 			})
 			.join('\n');

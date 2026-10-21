@@ -1,3 +1,4 @@
+import { parseMarkdown } from 'chat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TeamsConfig } from '../src/queries/project-teams-config.queries';
@@ -52,7 +53,8 @@ vi.mock('@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials',
 	TokenCredentialAuthenticationProvider: class {},
 }));
 
-vi.mock('chat', () => ({
+vi.mock('chat', async (importOriginal) => ({
+	...(await importOriginal<typeof import('chat')>()),
 	Card: vi.fn(),
 	Chat: class {
 		webhooks = { teams: vi.fn() };
@@ -153,10 +155,12 @@ describe('TeamsService', () => {
 		};
 		await firstProjectHandler(thread, {
 			text: 'question',
+			formatted: parseMarkdown('question'),
 			raw: { from: { aadObjectId: 'aad-id' }, conversation: { tenantId: 'sender-tenant' } },
 		});
 		await secondProjectHandler(thread, {
 			text: 'question',
+			formatted: parseMarkdown('question'),
 			raw: { from: { aadObjectId: 'aad-id' }, conversation: { tenantId: 'sender-tenant' } },
 		});
 
@@ -190,6 +194,7 @@ describe('TeamsService', () => {
 		teamsService.getWebhooks(config);
 		await teamsHarness.messageHandlers[0](thread, {
 			text: 'question',
+			formatted: parseMarkdown('question'),
 			raw: { from: { aadObjectId: 'aad-id' }, conversation: { tenantId: 'sender-tenant' } },
 		});
 
@@ -220,6 +225,7 @@ describe('TeamsService', () => {
 		teamsService.getWebhooks(config);
 		await teamsHarness.messageHandlers[0](thread, {
 			text: 'question',
+			formatted: parseMarkdown('question'),
 			raw: { from: { aadObjectId: 'aad-id' }, conversation: { tenantId: 'sender-tenant' } },
 		});
 
